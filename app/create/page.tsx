@@ -20,6 +20,46 @@ const PERSONALITY_OPTIONS = [
   "Terpercaya",
 ];
 
+const INDUSTRY_OPTIONS = [
+  "Food & Beverage",
+  "Coffee Shop",
+  "Restoran",
+  "Fashion & Apparel",
+  "Beauty & Skincare",
+  "Kesehatan & Wellness",
+  "Teknologi / SaaS",
+  "E-commerce",
+  "Pendidikan",
+  "Konsultan & Agensi",
+  "Jasa Profesional",
+  "Konstruksi & Properti",
+  "Otomotif",
+  "Travel & Hospitality",
+  "Event & Entertainment",
+  "Seni & Kreatif",
+  "Pertanian & Agribisnis",
+  "Manufaktur",
+  "Finansial",
+  "Logistik",
+  "Non-profit / Komunitas",
+  "Lainnya",
+];
+
+const AUDIENCE_OPTIONS = [
+  "Anak muda / Gen Z (17-24 tahun)",
+  "Profesional muda (25-35 tahun)",
+  "Keluarga muda (30-45 tahun)",
+  "Eksekutif / C-level",
+  "Ibu rumah tangga",
+  "Pelajar / Mahasiswa",
+  "UMKM / Pemilik bisnis",
+  "Komunitas hobi spesifik",
+  "Wisatawan / Traveler",
+  "Segmen premium / High-end",
+  "Segmen menengah",
+  "Segmen mass market",
+];
+
 export default function CreatePage() {
   const router = useRouter();
   const [brief, setBrief] = useState<BrandBrief>({
@@ -97,31 +137,41 @@ export default function CreatePage() {
         </Field>
 
         <Field label="Industri / Kategori" required>
-          <input
-            type="text"
+          <select
             required
             value={brief.industry}
             onChange={(e) => setBrief({ ...brief, industry: e.target.value })}
-            placeholder="cth. Coffee shop, SaaS, Fashion"
             className="input"
-          />
+          >
+            <option value="">— Pilih industri —</option>
+            {INDUSTRY_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field
           label="Target Audiens"
-          hint="Siapa pengguna/pembeli ideal? Usia, profesi, lifestyle, kebiasaan."
+          hint="Pilih segmen yang paling mendekati audiens ideal brand-mu."
           required
         >
-          <textarea
+          <select
             required
-            rows={3}
             value={brief.targetAudience}
             onChange={(e) =>
               setBrief({ ...brief, targetAudience: e.target.value })
             }
-            placeholder="cth. Profesional muda 25-35 tahun di kota besar yang suka ngopi pagi sebelum kerja..."
             className="input"
-          />
+          >
+            <option value="">— Pilih target audiens —</option>
+            {AUDIENCE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Visi" hint="Gambaran besar jangka panjang." required>
