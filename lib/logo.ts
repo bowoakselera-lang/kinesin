@@ -123,6 +123,110 @@ function stacked(name: string, traits: string[], primary: string, dark: string, 
   </svg>`;
 }
 
+function lineMonogram(name: string, primary: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name));
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <rect width="200" height="200" fill="${light}"/>
+    <circle cx="100" cy="100" r="78" fill="none" stroke="${primary}" stroke-width="2"/>
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="76" font-weight="300" fill="${primary}" letter-spacing="-2">${init}</text>
+  </svg>`;
+}
+
+function emblemRing(name: string, primary: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name));
+  const safe = escapeXml(name.toUpperCase());
+  // Build text on circular path
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <defs>
+      <path id="ringPath" d="M 100,100 m -68,0 a 68,68 0 1,1 136,0 a 68,68 0 1,1 -136,0"/>
+    </defs>
+    <rect width="200" height="200" fill="${light}"/>
+    <circle cx="100" cy="100" r="78" fill="none" stroke="${primary}" stroke-width="1"/>
+    <circle cx="100" cy="100" r="62" fill="none" stroke="${primary}" stroke-width="1"/>
+    <text font-family="${fontFamily}, sans-serif" font-size="9" font-weight="600" fill="${primary}" letter-spacing="3">
+      <textPath href="#ringPath" startOffset="0%">${safe} · ${safe} · </textPath>
+    </text>
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="42" font-weight="700" fill="${primary}">${init}</text>
+  </svg>`;
+}
+
+function letterCut(name: string, primary: string, accent: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name).slice(0, 1));
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <rect width="200" height="200" fill="${light}"/>
+    <defs>
+      <clipPath id="topHalf"><rect x="0" y="0" width="200" height="100"/></clipPath>
+      <clipPath id="botHalf"><rect x="0" y="100" width="200" height="100"/></clipPath>
+    </defs>
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="140" font-weight="900" fill="${primary}" clip-path="url(#topHalf)">${init}</text>
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="140" font-weight="900" fill="${accent}" clip-path="url(#botHalf)" transform="translate(8 0)">${init}</text>
+    <line x1="40" y1="100" x2="160" y2="100" stroke="${light}" stroke-width="6"/>
+  </svg>`;
+}
+
+function gridMark(name: string, primary: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name).slice(0, 1));
+  // 3x3 dot grid framing the letter
+  const dots = [];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      if (r === 1 && c === 1) continue;
+      dots.push(
+        `<circle cx="${50 + c * 50}" cy="${50 + r * 50}" r="3.5" fill="${primary}" opacity="0.7"/>`
+      );
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <rect width="200" height="200" fill="${light}"/>
+    ${dots.join("")}
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="64" font-weight="800" fill="${primary}">${init}</text>
+  </svg>`;
+}
+
+function bracketMark(name: string, primary: string, dark: string, light: string, fontFamily: string): string {
+  const safeName = escapeXml(name);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
+    <rect width="500" height="120" fill="${light}"/>
+    <text x="40" y="60" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="48" font-weight="300" fill="${primary}">[</text>
+    <text x="250" y="60" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="38" font-weight="700" fill="${dark}" letter-spacing="2">${safeName.toUpperCase()}</text>
+    <text x="460" y="60" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="48" font-weight="300" fill="${primary}">]</text>
+  </svg>`;
+}
+
+function geometricStack(name: string, traits: string[], primary: string, dark: string, light: string, fontFamily: string): string {
+  const shape = pickShape(traits);
+  const safeName = escapeXml(name.toUpperCase());
+  // Layered geometric icon
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <rect width="200" height="200" fill="${light}"/>
+    <g opacity="0.35">${iconPath(shape, primary, 100, 75, 100)}</g>
+    <g transform="translate(0 -8)">${iconPath(shape, primary, 100, 75, 70)}</g>
+    <text x="100" y="155" text-anchor="middle" font-family="${fontFamily}, sans-serif" font-size="14" font-weight="800" fill="${dark}" letter-spacing="3">${safeName}</text>
+    <line x1="80" y1="170" x2="120" y2="170" stroke="${primary}" stroke-width="2"/>
+  </svg>`;
+}
+
+function negativeSpace(name: string, primary: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name).slice(0, 1));
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    <rect width="200" height="200" fill="${primary}"/>
+    <text x="100" y="100" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="120" font-weight="900" fill="${light}">${init}</text>
+    <rect x="20" y="20" width="160" height="160" fill="none" stroke="${light}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function modernHorizontal(name: string, primary: string, dark: string, light: string, fontFamily: string): string {
+  const init = escapeXml(initials(name).slice(0, 1));
+  const safeName = escapeXml(name.toLowerCase());
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
+    <rect width="500" height="120" fill="${light}"/>
+    <rect x="40" y="30" width="60" height="60" fill="${primary}"/>
+    <text x="70" y="60" text-anchor="middle" dominant-baseline="central" font-family="${fontFamily}, sans-serif" font-size="36" font-weight="800" fill="${light}">${init}</text>
+    <text x="120" y="56" font-family="${fontFamily}, sans-serif" font-size="26" font-weight="700" fill="${dark}">${safeName}</text>
+    <text x="120" y="80" font-family="${fontFamily}, sans-serif" font-size="9" font-weight="500" fill="${primary}" letter-spacing="3">VISUAL IDENTITY</text>
+  </svg>`;
+}
+
 function badge(name: string, primary: string, light: string, fontFamily: string): string {
   const safeName = escapeXml(name);
   const year = new Date().getFullYear();
@@ -145,42 +249,20 @@ export function generateLogos(brief: BrandBrief, identity: BrandIdentity): LogoV
   const name = brief.brandName;
 
   return [
-    {
-      id: "monogram-circle",
-      name: "Monogram Lingkaran",
-      style: "monogram-circle",
-      svg: monogramCircle(name, primary, light, fontFamily),
-    },
-    {
-      id: "monogram-square",
-      name: "Monogram Kotak",
-      style: "monogram-square",
-      svg: monogramSquare(name, primary, accent, light, fontFamily),
-    },
-    {
-      id: "icon-wordmark",
-      name: "Ikon + Wordmark",
-      style: "icon-wordmark",
-      svg: iconWordmark(name, brief.personality, primary, dark, light, fontFamily),
-    },
-    {
-      id: "wordmark-dot",
-      name: "Wordmark Minimal",
-      style: "wordmark-dot",
-      svg: wordmarkDot(name, primary, dark, light, fontFamily),
-    },
-    {
-      id: "stacked",
-      name: "Stacked",
-      style: "stacked",
-      svg: stacked(name, brief.personality, primary, dark, light, fontFamily),
-    },
-    {
-      id: "badge",
-      name: "Badge Klasik",
-      style: "badge",
-      svg: badge(name, primary, light, fontFamily),
-    },
+    { id: "monogram-circle", name: "Monogram Lingkaran", style: "monogram-circle", svg: monogramCircle(name, primary, light, fontFamily) },
+    { id: "monogram-square", name: "Monogram Kotak", style: "monogram-square", svg: monogramSquare(name, primary, accent, light, fontFamily) },
+    { id: "line-monogram", name: "Line Monogram", style: "monogram-circle", svg: lineMonogram(name, primary, light, fontFamily) },
+    { id: "negative-space", name: "Negative Space", style: "monogram-square", svg: negativeSpace(name, primary, light, fontFamily) },
+    { id: "letter-cut", name: "Letter Cut", style: "monogram-square", svg: letterCut(name, primary, accent, light, fontFamily) },
+    { id: "grid-mark", name: "Grid Mark", style: "monogram-square", svg: gridMark(name, primary, light, fontFamily) },
+    { id: "emblem-ring", name: "Emblem Ring", style: "badge", svg: emblemRing(name, primary, light, fontFamily) },
+    { id: "icon-wordmark", name: "Ikon + Wordmark", style: "icon-wordmark", svg: iconWordmark(name, brief.personality, primary, dark, light, fontFamily) },
+    { id: "modern-horizontal", name: "Modern Horizontal", style: "icon-wordmark", svg: modernHorizontal(name, primary, dark, light, fontFamily) },
+    { id: "bracket-mark", name: "Bracket Mark", style: "wordmark-dot", svg: bracketMark(name, primary, dark, light, fontFamily) },
+    { id: "wordmark-dot", name: "Wordmark Minimal", style: "wordmark-dot", svg: wordmarkDot(name, primary, dark, light, fontFamily) },
+    { id: "stacked", name: "Stacked", style: "stacked", svg: stacked(name, brief.personality, primary, dark, light, fontFamily) },
+    { id: "geometric-stack", name: "Geometric Stack", style: "stacked", svg: geometricStack(name, brief.personality, primary, dark, light, fontFamily) },
+    { id: "badge", name: "Badge Klasik", style: "badge", svg: badge(name, primary, light, fontFamily) },
   ];
 }
 
