@@ -216,37 +216,15 @@ export default function ProjectDetailPage() {
       </Section>
 
       <Section title="Tipografi">
-        <div className="grid md:grid-cols-2 gap-4">
-          {identity.typography.map((t) => (
-            <div
+        <div className="rounded-2xl bg-white border border-slate-200 divide-y divide-slate-200 overflow-hidden">
+          {identity.typography.map((t, idx) => (
+            <TypographyRow
               key={t.role}
-              className="p-5 rounded-xl bg-white border border-slate-200"
-            >
-              <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">
-                {t.role === "heading" ? "Heading" : "Body"}
-              </div>
-              <div
-                className="text-3xl mb-1"
-                style={{ fontFamily: `'${t.fontFamily}', sans-serif` }}
-              >
-                {t.fontFamily}
-              </div>
-              <div
-                className="text-base text-slate-700 mb-3"
-                style={{ fontFamily: `'${t.fontFamily}', sans-serif` }}
-              >
-                The quick brown fox jumps — 1234567890
-              </div>
-              <p className="text-sm text-slate-600 mb-2">{t.rationale}</p>
-              <a
-                href={t.googleFontUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-indigo-600 hover:underline"
-              >
-                Lihat di Google Fonts →
-              </a>
-            </div>
+              index={idx + 1}
+              font={t}
+              accentColor={identity.palette[0]?.hex ?? "#4F46E5"}
+              showWeights={t.role === "body"}
+            />
           ))}
         </div>
       </Section>
@@ -423,6 +401,113 @@ function ColorBand({
           {Values}
         </>
       )}
+    </div>
+  );
+}
+
+function TypographyRow({
+  index,
+  font,
+  accentColor,
+  showWeights,
+}: {
+  index: number;
+  font: {
+    role: "heading" | "body";
+    fontFamily: string;
+    googleFontUrl: string;
+    rationale: string;
+  };
+  accentColor: string;
+  showWeights: boolean;
+}) {
+  const family = `'${font.fontFamily}', sans-serif`;
+  const num = String(index).padStart(2, "0");
+  const weights = ["Light", "Regular", "Medium", "Bold", "Black"];
+  const defaultWeightIdx = font.role === "heading" ? 3 : 1;
+
+  return (
+    <div className="p-6 md:p-8 grid md:grid-cols-[auto_1fr_1fr] gap-6 items-center">
+      <div className="flex items-center gap-3">
+        <span
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+          style={{ backgroundColor: accentColor }}
+        >
+          {num}
+        </span>
+        <span className="text-slate-400 text-sm md:hidden">.</span>
+      </div>
+
+      <div>
+        <div
+          className="leading-none"
+          style={{ fontFamily: family, fontSize: "clamp(42px, 6vw, 72px)", fontWeight: font.role === "heading" ? 700 : 400 }}
+        >
+          {font.fontFamily}
+          {font.role === "body" && (
+            <span
+              className="text-slate-400 ml-2 font-normal"
+              style={{ fontSize: "0.45em" }}
+            >
+              Family
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-3 max-w-md">{font.rationale}</p>
+        <a
+          href={font.googleFontUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs hover:underline mt-1 inline-block"
+          style={{ color: accentColor }}
+        >
+          Google Fonts →
+        </a>
+      </div>
+
+      <div>
+        <div
+          className="text-sm md:text-base leading-relaxed text-slate-800"
+          style={{ fontFamily: family }}
+        >
+          abcdefghijklmnopqrstuvwxyz
+          <br />
+          ABCDEFGHIJKLMNOPQRSTUVWXYZ
+          <br />
+          0123456789!@#$%&?
+        </div>
+
+        {showWeights && (
+          <div className="mt-5">
+            <div className="relative flex justify-between items-center">
+              <div className="absolute left-3 right-3 top-1/2 h-px bg-slate-200" />
+              {weights.map((w, i) => (
+                <div
+                  key={w}
+                  className="relative flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{
+                      backgroundColor:
+                        i === defaultWeightIdx ? accentColor : "#cbd5e1",
+                    }}
+                  />
+                  <span
+                    className={`text-[10px] md:text-xs ${
+                      i === defaultWeightIdx
+                        ? "font-bold text-slate-900"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {w}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
