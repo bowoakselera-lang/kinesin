@@ -131,28 +131,65 @@ export default function ProjectDetailPage() {
       <Section title="Mockup Preview">
         <p className="text-slate-600 text-sm mb-4">
           Lihat bagaimana logo "{logos.find((l) => l.id === selectedLogoId)?.name}"
-          diaplikasikan di berbagai media. Pilih logo lain di atas untuk
+          tampil di foto dunia nyata. Pilih logo lain di atas untuk
           mengganti preview.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {generateMockups(
-            logos.find((l) => l.id === selectedLogoId)?.svg ?? logos[0].svg,
-            identity
-          ).map((m) => (
-            <div
-              key={m.id}
-              className="rounded-xl border border-slate-200 bg-white overflow-hidden"
-            >
+          {generateMockups(identity).map((m) => {
+            const logoSvg =
+              logos.find((l) => l.id === selectedLogoId)?.svg ?? logos[0].svg;
+            return (
               <div
-                className="w-full"
-                style={{ aspectRatio: "3 / 2" }}
-                dangerouslySetInnerHTML={{ __html: m.svg }}
-              />
-              <div className="p-3 border-t border-slate-200 text-sm font-medium">
-                {m.name}
+                key={m.id}
+                className="rounded-xl border border-slate-200 bg-white overflow-hidden"
+              >
+                <div
+                  className="relative w-full overflow-hidden"
+                  style={{ aspectRatio: "3 / 2" }}
+                >
+                  <img
+                    src={m.photo}
+                    alt={m.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  {m.overlays.map((ov, i) => (
+                    <div
+                      key={i}
+                      className="absolute flex items-center justify-center"
+                      style={{
+                        left: `${ov.x}%`,
+                        top: `${ov.y}%`,
+                        width: `${ov.w}%`,
+                        height: `${ov.h}%`,
+                        transform: ov.rotate ? `rotate(${ov.rotate}deg)` : undefined,
+                        mixBlendMode: ov.blendMode ?? "normal",
+                        opacity: ov.opacity ?? 1,
+                        backgroundColor: ov.bgColor,
+                        borderRadius: ov.bgRadius ? `${ov.bgRadius}px` : undefined,
+                        padding: ov.bgColor ? "6%" : 0,
+                        boxShadow: ov.bgColor
+                          ? "0 6px 18px rgba(0,0,0,0.18)"
+                          : undefined,
+                      }}
+                    >
+                      <div
+                        className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full"
+                        dangerouslySetInnerHTML={{ __html: logoSvg }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 border-t border-slate-200 flex items-center justify-between">
+                  <div className="text-sm font-medium">{m.name}</div>
+                  {m.credit && (
+                    <div className="text-xs text-slate-400">
+                      Foto: {m.credit}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
 
