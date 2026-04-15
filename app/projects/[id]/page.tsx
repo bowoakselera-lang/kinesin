@@ -306,6 +306,14 @@ function isLight(hex: string) {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
 }
 
+// Mix color with white. amount=1.0 → pure color, amount=0.2 → 20% color + 80% white.
+function tint(hex: string, amount: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  const mix = (c: number) => Math.round(c * amount + 255 * (1 - amount));
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 function ColorBand({
   color,
   reverse,
@@ -324,29 +332,32 @@ function ColorBand({
 
   const Tints = (
     <div className="flex gap-1.5 px-3 py-3 items-end">
-      {(reverse ? [...tints].reverse() : tints).map((t) => (
-        <div
-          key={t}
-          className="w-9 md:w-12 rounded-xl flex items-end justify-center pb-2"
-          style={{
-            backgroundColor: color.hex,
-            opacity: t / 100,
-            height: "calc(100% - 0px)",
-            minHeight: 80,
-          }}
-        >
-          <span
-            className="text-[10px] md:text-xs font-medium"
+      {(reverse ? [...tints].reverse() : tints).map((t) => {
+        const tintHex = tint(color.hex, t / 100);
+        const tintInk = isLight(tintHex) ? "#0f172a" : "#ffffff";
+        return (
+          <div
+            key={t}
+            className="w-9 md:w-12 rounded-xl flex items-end justify-center pb-2"
             style={{
-              color: ink,
-              writingMode: "vertical-rl",
-              transform: "rotate(180deg)",
+              backgroundColor: tintHex,
+              height: "calc(100% - 0px)",
+              minHeight: 80,
             }}
           >
-            {t}%
-          </span>
-        </div>
-      ))}
+            <span
+              className="text-[10px] md:text-xs font-semibold"
+              style={{
+                color: tintInk,
+                writingMode: "vertical-rl",
+                transform: "rotate(180deg)",
+              }}
+            >
+              {t}%
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 
