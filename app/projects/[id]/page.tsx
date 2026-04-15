@@ -208,29 +208,9 @@ export default function ProjectDetailPage() {
 
       <Section title="Palet Warna">
         <p className="text-slate-600 text-sm mb-4">{identity.rationale}</p>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {identity.palette.map((c) => (
-            <div
-              key={c.hex}
-              className="rounded-xl overflow-hidden border border-slate-200 bg-white"
-            >
-              <div
-                className="h-24"
-                style={{ backgroundColor: c.hex }}
-                title={c.hex}
-              />
-              <div className="p-3">
-                <div className="font-medium text-sm">{c.name}</div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(c.hex)}
-                  className="text-xs text-slate-500 font-mono hover:text-indigo-600"
-                  title="Klik untuk copy"
-                >
-                  {c.hex.toUpperCase()}
-                </button>
-                <div className="text-xs text-slate-500 mt-1">{c.role}</div>
-              </div>
-            </div>
+        <div className="space-y-3 p-4 rounded-2xl bg-slate-950">
+          {identity.palette.map((c, idx) => (
+            <ColorBand key={c.hex} color={c} reverse={idx % 2 === 1} />
           ))}
         </div>
       </Section>
@@ -307,6 +287,132 @@ function Section({
       <h2 className="text-xl font-bold mb-4">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function hexToRgb(hex: string) {
+  const c = hex.replace("#", "");
+  const f =
+    c.length === 3 ? c.split("").map((x) => x + x).join("") : c.padEnd(6, "0");
+  return {
+    r: parseInt(f.slice(0, 2), 16),
+    g: parseInt(f.slice(2, 4), 16),
+    b: parseInt(f.slice(4, 6), 16),
+  };
+}
+
+function isLight(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+}
+
+function ColorBand({
+  color,
+  reverse,
+}: {
+  color: { name: string; hex: string; role: string };
+  reverse: boolean;
+}) {
+  const { r, g, b } = hexToRgb(color.hex);
+  const ink = isLight(color.hex) ? "#0f172a" : "#ffffff";
+  const tints = [80, 60, 40, 20];
+
+  const mainStyle: React.CSSProperties = {
+    backgroundColor: color.hex,
+    color: ink,
+  };
+
+  const Tints = (
+    <div className="flex gap-1.5 px-3 py-3 items-end">
+      {(reverse ? [...tints].reverse() : tints).map((t) => (
+        <div
+          key={t}
+          className="w-9 md:w-12 rounded-xl flex items-end justify-center pb-2"
+          style={{
+            backgroundColor: color.hex,
+            opacity: t / 100,
+            height: "calc(100% - 0px)",
+            minHeight: 80,
+          }}
+        >
+          <span
+            className="text-[10px] md:text-xs font-medium"
+            style={{
+              color: ink,
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+            }}
+          >
+            {t}%
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const Center = (
+    <div className="flex-1 flex items-center justify-center px-6 py-8">
+      <div className="text-center md:text-left w-full">
+        <div className="text-2xl md:text-4xl font-bold" style={{ color: ink }}>
+          {color.name}
+        </div>
+        <div
+          className="text-xs md:text-sm mt-1 opacity-80"
+          style={{ color: ink }}
+        >
+          {color.role}
+        </div>
+      </div>
+    </div>
+  );
+
+  const Values = (
+    <div
+      className="px-6 py-3 flex md:flex-col gap-4 md:gap-1 text-xs md:text-sm font-mono"
+      style={{ color: ink }}
+    >
+      <div>
+        <div className="opacity-60 text-[10px] uppercase tracking-wider">
+          RGB
+        </div>
+        <div>
+          {r}, {g}, {b}
+        </div>
+      </div>
+      <div>
+        <div className="opacity-60 text-[10px] uppercase tracking-wider">
+          Hex
+        </div>
+        <button
+          onClick={() => navigator.clipboard.writeText(color.hex)}
+          className="hover:underline"
+          title="Klik untuk copy"
+        >
+          {color.hex.replace("#", "").toUpperCase()}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden flex flex-col md:flex-row items-stretch min-h-[140px]"
+      style={mainStyle}
+    >
+      {reverse ? (
+        <>
+          {Center}
+          {Values}
+          {Tints}
+        </>
+      ) : (
+        <>
+          {Tints}
+          {Center}
+          {Values}
+        </>
+      )}
+    </div>
   );
 }
 

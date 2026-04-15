@@ -80,55 +80,5 @@ export function generateMockups(
         },
       ],
     },
-    {
-      id: "business-card",
-      name: "Kartu Nama",
-      photo: UNSPLASH("1606293926075-91d2c1c44b96"),
-      credit: "Unsplash",
-      overlays: [
-        {
-          x: 28,
-          y: 38,
-          w: 22,
-          h: 14,
-          bgColor: light,
-          bgRadius: 6,
-          rotate: -4,
-        },
-      ],
-    },
-    {
-      id: "tote",
-      name: "Tote Bag",
-      photo: UNSPLASH("1544816155-12df9643f363"),
-      credit: "Unsplash",
-      overlays: [
-        {
-          x: 41,
-          y: 46,
-          w: 18,
-          h: 14,
-          blendMode: "multiply",
-          opacity: 0.9,
-        },
-      ],
-    },
-    {
-      id: "storefront",
-      name: "Signage Toko",
-      photo: UNSPLASH("1567521464027-f127ff144326"),
-      credit: "Unsplash",
-      overlays: [
-        {
-          x: 35,
-          y: 22,
-          w: 30,
-          h: 12,
-          bgColor: primary,
-          bgRadius: 3,
-          opacity: 0.95,
-        },
-      ],
-    },
   ];
 }

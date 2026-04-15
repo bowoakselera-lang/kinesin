@@ -242,27 +242,35 @@ function badge(name: string, primary: string, light: string, fontFamily: string)
 
 export function generateLogos(brief: BrandBrief, identity: BrandIdentity): LogoVariant[] {
   const primary = identity.palette[0]?.hex ?? "#1E3A8A";
-  const accent = identity.palette[2]?.hex ?? primary;
   const dark = identity.palette[3]?.hex ?? "#1F2937";
   const light = identity.palette[4]?.hex ?? "#F3F4F6";
   const fontFamily = identity.typography[0]?.fontFamily ?? "Inter";
   const name = brief.brandName;
 
+  // Suppress unused warnings — kept for potential future variants
+  void monogramCircle; void monogramSquare; void iconWordmark; void wordmarkDot;
+  void stacked; void badge; void emblemRing; void letterCut; void gridMark;
+  void bracketMark; void geometricStack;
+
   return [
-    { id: "monogram-circle", name: "Monogram Lingkaran", style: "monogram-circle", svg: monogramCircle(name, primary, light, fontFamily) },
-    { id: "monogram-square", name: "Monogram Kotak", style: "monogram-square", svg: monogramSquare(name, primary, accent, light, fontFamily) },
-    { id: "line-monogram", name: "Line Monogram", style: "monogram-circle", svg: lineMonogram(name, primary, light, fontFamily) },
-    { id: "negative-space", name: "Negative Space", style: "monogram-square", svg: negativeSpace(name, primary, light, fontFamily) },
-    { id: "letter-cut", name: "Letter Cut", style: "monogram-square", svg: letterCut(name, primary, accent, light, fontFamily) },
-    { id: "grid-mark", name: "Grid Mark", style: "monogram-square", svg: gridMark(name, primary, light, fontFamily) },
-    { id: "emblem-ring", name: "Emblem Ring", style: "badge", svg: emblemRing(name, primary, light, fontFamily) },
-    { id: "icon-wordmark", name: "Ikon + Wordmark", style: "icon-wordmark", svg: iconWordmark(name, brief.personality, primary, dark, light, fontFamily) },
-    { id: "modern-horizontal", name: "Modern Horizontal", style: "icon-wordmark", svg: modernHorizontal(name, primary, dark, light, fontFamily) },
-    { id: "bracket-mark", name: "Bracket Mark", style: "wordmark-dot", svg: bracketMark(name, primary, dark, light, fontFamily) },
-    { id: "wordmark-dot", name: "Wordmark Minimal", style: "wordmark-dot", svg: wordmarkDot(name, primary, dark, light, fontFamily) },
-    { id: "stacked", name: "Stacked", style: "stacked", svg: stacked(name, brief.personality, primary, dark, light, fontFamily) },
-    { id: "geometric-stack", name: "Geometric Stack", style: "stacked", svg: geometricStack(name, brief.personality, primary, dark, light, fontFamily) },
-    { id: "badge", name: "Badge Klasik", style: "badge", svg: badge(name, primary, light, fontFamily) },
+    {
+      id: "line-monogram",
+      name: "Line Monogram",
+      style: "monogram-circle",
+      svg: lineMonogram(name, primary, light, fontFamily),
+    },
+    {
+      id: "modern-horizontal",
+      name: "Modern Horizontal",
+      style: "icon-wordmark",
+      svg: modernHorizontal(name, primary, dark, light, fontFamily),
+    },
+    {
+      id: "negative-space",
+      name: "Negative Space",
+      style: "monogram-square",
+      svg: negativeSpace(name, primary, light, fontFamily),
+    },
   ];
 }
 
