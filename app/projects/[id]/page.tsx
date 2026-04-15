@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getProject } from "@/lib/storage";
 import { exportBrandPDF } from "@/lib/pdf";
 import { generateLogos, downloadSvg, downloadPng } from "@/lib/logo";
+import { generateMockups } from "@/lib/mockups";
 import type { BrandProject } from "@/lib/types";
 
 export default function ProjectDetailPage() {
@@ -13,6 +14,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const [project, setProject] = useState<BrandProject | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [selectedLogoId, setSelectedLogoId] = useState<string>("stacked");
 
   useEffect(() => {
     if (!params?.id) return;
@@ -66,45 +68,88 @@ export default function ProjectDetailPage() {
 
       <Section title="Logo">
         <p className="text-slate-600 text-sm mb-4">
-          Beberapa variasi logo otomatis berdasarkan nama, kepribadian, dan palet
-          warna brand-mu. Klik Download untuk unduh SVG atau PNG.
+          Klik salah satu logo untuk melihat preview mockup-nya. Gunakan tombol
+          di bawah untuk download SVG atau PNG.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {logos.map((logo) => (
+          {logos.map((logo) => {
+            const active = logo.id === selectedLogoId;
+            return (
+              <div
+                key={logo.id}
+                className={`rounded-xl border bg-white overflow-hidden flex flex-col transition ${
+                  active
+                    ? "border-indigo-600 ring-2 ring-indigo-600/30 shadow-md"
+                    : "border-slate-200 hover:border-slate-400"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedLogoId(logo.id)}
+                  className="aspect-square bg-slate-50 flex items-center justify-center p-3 cursor-pointer relative"
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      logo.svg +
+                      (active
+                        ? `<div style="position:absolute;top:8px;right:8px;background:#4f46e5;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-family:sans-serif;font-weight:600">DIPILIH</div>`
+                        : ""),
+                  }}
+                />
+                <div className="p-3 border-t border-slate-200">
+                  <div className="font-medium text-sm mb-2">{logo.name}</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        downloadSvg(
+                          logo.svg,
+                          `${slugify(brief.brandName)}-${logo.id}.svg`
+                        )
+                      }
+                      className="flex-1 px-2 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50"
+                    >
+                      SVG
+                    </button>
+                    <button
+                      onClick={() =>
+                        downloadPng(
+                          logo.svg,
+                          `${slugify(brief.brandName)}-${logo.id}.png`
+                        )
+                      }
+                      className="flex-1 px-2 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50"
+                    >
+                      PNG
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section title="Mockup Preview">
+        <p className="text-slate-600 text-sm mb-4">
+          Lihat bagaimana logo "{logos.find((l) => l.id === selectedLogoId)?.name}"
+          diaplikasikan di berbagai media. Pilih logo lain di atas untuk
+          mengganti preview.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {generateMockups(
+            logos.find((l) => l.id === selectedLogoId)?.svg ?? logos[0].svg,
+            identity
+          ).map((m) => (
             <div
-              key={logo.id}
-              className="rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col"
+              key={m.id}
+              className="rounded-xl border border-slate-200 bg-white overflow-hidden"
             >
               <div
-                className="aspect-square bg-slate-50 flex items-center justify-center p-3"
-                dangerouslySetInnerHTML={{ __html: logo.svg }}
+                className="w-full"
+                style={{ aspectRatio: "3 / 2" }}
+                dangerouslySetInnerHTML={{ __html: m.svg }}
               />
-              <div className="p-3 border-t border-slate-200">
-                <div className="font-medium text-sm mb-2">{logo.name}</div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      downloadSvg(
-                        logo.svg,
-                        `${slugify(brief.brandName)}-${logo.id}.svg`
-                      )
-                    }
-                    className="flex-1 px-2 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50"
-                  >
-                    SVG
-                  </button>
-                  <button
-                    onClick={() =>
-                      downloadPng(
-                        logo.svg,
-                        `${slugify(brief.brandName)}-${logo.id}.png`
-                      )
-                    }
-                    className="flex-1 px-2 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50"
-                  >
-                    PNG
-                  </button>
-                </div>
+              <div className="p-3 border-t border-slate-200 text-sm font-medium">
+                {m.name}
               </div>
             </div>
           ))}
