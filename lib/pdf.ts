@@ -569,7 +569,7 @@ function renderTone({ doc, project }: Ctx) {
 
 // ── MAIN ─────────────────────────────────────────────────────────────────
 
-export async function exportBrandPDF(project: BrandProject) {
+export async function buildBrandPDF(project: BrandProject): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const ctx: Ctx = { doc, project };
 
@@ -582,5 +582,20 @@ export async function exportBrandPDF(project: BrandProject) {
   renderTypography(ctx);
   renderTone(ctx);
 
+  return doc;
+}
+
+export async function exportBrandPDF(project: BrandProject) {
+  const doc = await buildBrandPDF(project);
   doc.save(`${slugify(project.brief.brandName)}-brand-guideline.pdf`);
+}
+
+export async function previewBrandPDF(project: BrandProject): Promise<string> {
+  const doc = await buildBrandPDF(project);
+  const blob = doc.output("blob");
+  return URL.createObjectURL(blob);
+}
+
+export function brandPdfFilename(project: BrandProject): string {
+  return `${slugify(project.brief.brandName)}-brand-guideline.pdf`;
 }

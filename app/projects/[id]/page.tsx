@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getProject } from "@/lib/storage";
-import { exportBrandPDF } from "@/lib/pdf";
+import { exportBrandPDF, previewBrandPDF, brandPdfFilename } from "@/lib/pdf";
 import { generateLogos, downloadSvg, downloadPng } from "@/lib/logo";
 import { generateMockups } from "@/lib/mockups";
 import type { BrandProject } from "@/lib/types";
@@ -15,6 +15,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<BrandProject | null>(null);
   const [mounted, setMounted] = useState(false);
   const [selectedLogoId, setSelectedLogoId] = useState<string>("stacked");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (!params?.id) return;
@@ -38,6 +40,48 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+              <div className="font-semibold">Preview Brand Guideline</div>
+              <div className="flex gap-2">
+                <a
+                  href={previewUrl}
+                  download={brandPdfFilename(project)}
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+                >
+                  ⬇ Download
+                </a>
+                <button
+                  onClick={() => {
+                    URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm hover:bg-slate-50"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={previewUrl}
+              className="flex-1 w-full"
+              title="PDF Preview"
+            />
+          </div>
+        </div>
+      )}
+
       {fontLinks && (
         <link
           rel="stylesheet"
@@ -56,14 +100,31 @@ export default function ProjectDetailPage() {
           <h1 className="text-3xl font-bold mt-1">{brief.brandName}</h1>
           <p className="text-slate-600">{identity.tagline}</p>
         </div>
-        <button
-          onClick={() => {
-            void exportBrandPDF(project);
-          }}
-          className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
-        >
-          ⬇ Download PDF Guideline
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              setPreviewLoading(true);
+              try {
+                const url = await previewBrandPDF(project);
+                setPreviewUrl(url);
+              } finally {
+                setPreviewLoading(false);
+              }
+            }}
+            disabled={previewLoading}
+            className="px-5 py-2.5 rounded-lg border border-slate-300 bg-white font-medium hover:bg-slate-50 transition disabled:opacity-60"
+          >
+            {previewLoading ? "Menyiapkan..." : "👁 Preview PDF"}
+          </button>
+          <button
+            onClick={() => {
+              void exportBrandPDF(project);
+            }}
+            className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
+          >
+            ⬇ Download PDF
+          </button>
+        </div>
       </div>
 
       <Section title="Logo">
