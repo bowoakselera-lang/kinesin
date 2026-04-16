@@ -22,16 +22,22 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
-        <header className="border-b border-slate-200 bg-white">
-          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="font-bold text-lg tracking-tight">
-              <span className="text-indigo-600">●</span> Kinesin
+        <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5">
+          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <Link href="/" className="font-bold text-lg tracking-tight text-white">
+              <span className="text-indigo-400">●</span> Kinesin
             </Link>
-            <nav className="flex gap-6 text-sm text-slate-600">
-              <Link href="/create" className="hover:text-slate-900">
+            <nav className="flex gap-6 text-sm">
+              <Link
+                href="/create"
+                className="text-slate-300 hover:text-white transition"
+              >
                 Buat Baru
               </Link>
-              <Link href="/projects" className="hover:text-slate-900">
+              <Link
+                href="/projects"
+                className="text-slate-300 hover:text-white transition"
+              >
                 Proyek Tersimpan
               </Link>
             </nav>
