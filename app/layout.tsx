@@ -24,8 +24,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="font-bold text-lg tracking-tight text-white">
-              <span className="text-indigo-400">●</span> Kinesin
+            <Link href="/" className="flex items-center gap-2">
+              <img
+                src="/kinesis-logo.png"
+                alt="Kinesin"
+                className="h-8 w-auto"
+              />
             </Link>
             <nav className="flex gap-6 text-sm">
               <Link
