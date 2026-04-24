@@ -492,22 +492,29 @@ function MockupCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovering, setHovering] = useState(false);
   const dragRef = useRef<{
-    mode: "move" | "nw" | "ne" | "sw" | "se";
+    mode: "move" | "nw" | "ne" | "sw" | "se" | "rotate";
     startX: number;
     startY: number;
     initial: MockupOverlayState;
     rectW: number;
     rectH: number;
+    rectLeft: number;
+    rectTop: number;
+    centerX?: number;
+    centerY?: number;
+    startAngle?: number;
   } | null>(null);
 
   const beginDrag = (
     e: React.PointerEvent,
-    mode: "move" | "nw" | "ne" | "sw" | "se"
+    mode: "move" | "nw" | "ne" | "sw" | "se" | "rotate"
   ) => {
     e.preventDefault();
     e.stopPropagation();
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const centerX = rect.left + ((overlay.x + overlay.w / 2) / 100) * rect.width;
+    const centerY = rect.top + ((overlay.y + overlay.h / 2) / 100) * rect.height;
     dragRef.current = {
       mode,
       startX: e.clientX,
@@ -515,6 +522,11 @@ function MockupCanvas({
       initial: { ...overlay },
       rectW: rect.width,
       rectH: rect.height,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      centerX,
+      centerY,
+      startAngle: Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI),
     };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -554,6 +566,13 @@ function MockupCanvas({
         x = clamp(st.initial.x + dxPct, 0, st.initial.x + st.initial.w - MIN);
         y = clamp(st.initial.y + dyPct, 0, st.initial.y + st.initial.h - MIN);
         break;
+      case "rotate": {
+        const cur = Math.atan2(e.clientY - (st.centerY ?? 0), e.clientX - (st.centerX ?? 0)) * (180 / Math.PI);
+        const delta = cur - (st.startAngle ?? 0);
+        const rot = ((st.initial.rotate ?? 0) + delta) % 360;
+        onChange({ x, y, w, h, rotate: rot });
+        return;
+      }
     }
     onChange({ x, y, w, h, rotate: st.initial.rotate });
   };
@@ -633,6 +652,32 @@ function MockupCanvas({
             <div
               style={{ ...handleStyle, right: -handleSize / 2, bottom: -handleSize / 2, cursor: "nwse-resize" }}
               onPointerDown={(e) => beginDrag(e, "se")}
+            />
+            {/* Rotation handle */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: -32,
+                width: 1,
+                height: 18,
+                background: "#4f46e5",
+                transform: "translateX(-50%)",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                ...handleStyle,
+                left: "50%",
+                top: -32 - handleSize,
+                marginLeft: -handleSize / 2,
+                cursor: "grab",
+                background: "#4f46e5",
+                borderColor: "#fff",
+              }}
+              onPointerDown={(e) => beginDrag(e, "rotate")}
+              title="Rotasi"
             />
           </>
         )}
