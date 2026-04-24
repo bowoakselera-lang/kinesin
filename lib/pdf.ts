@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
-import type { BrandProject } from "./types";
+import type { BrandProject, MockupOverlayState } from "./types";
 import { generateLogos, svgToPngDataUrl } from "./logo";
+import { generateMockups } from "./mockups";
 
 const A4_W = 595.28;
 const A4_H = 841.89;
@@ -42,7 +43,67 @@ function slugify(s: string) {
 type Ctx = {
   doc: jsPDF;
   project: BrandProject;
+  logoSvg: string;
 };
+
+async function loadImageDataUrl(src: string): Promise<string> {
+  const url = src.startsWith("http") || src.startsWith("data:")
+    ? src
+    : new URL(src, window.location.origin).href;
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function composeMockup(
+  photoUrl: string,
+  overlay: MockupOverlayState,
+  logoSvg: string
+): Promise<string> {
+  const photoDataUrl = await loadImageDataUrl(photoUrl);
+  const logoPngUrl = await svgToPngDataUrl(logoSvg, 1000, 1000);
+  const [photo, logo] = await Promise.all([
+    loadImage(photoDataUrl),
+    loadImage(logoPngUrl),
+  ]);
+  const canvas = document.createElement("canvas");
+  canvas.width = photo.width;
+  canvas.height = photo.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2d unavailable");
+  ctx.drawImage(photo, 0, 0);
+
+  const x = (overlay.x / 100) * photo.width;
+  const y = (overlay.y / 100) * photo.height;
+  const w = (overlay.w / 100) * photo.width;
+  const h = (overlay.h / 100) * photo.height;
+  const rot = ((overlay.rotate ?? 0) * Math.PI) / 180;
+  const skewY = ((overlay.rotateX ?? 0) * Math.PI) / 180 / 4;
+  const skewX = ((overlay.rotateY ?? 0) * Math.PI) / 180 / 4;
+
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  ctx.rotate(rot);
+  ctx.transform(1, Math.tan(skewY), Math.tan(skewX), 1, 0, 0);
+  ctx.drawImage(logo, -w / 2, -h / 2, w, h);
+  ctx.restore();
+
+  return canvas.toDataURL("image/jpeg", 0.88);
+}
 
 function fillPage(doc: jsPDF, hex: string) {
   const { r, g, b } = hexToRgb(hex);
@@ -60,62 +121,69 @@ function setFillRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
 
 // ── PAGES ────────────────────────────────────────────────────────────────
 
-async function renderCover({ doc, project }: Ctx) {
+async function renderCover({ doc, project, logoSvg }: Ctx) {
   const { brief, identity } = project;
-  const primary = identity.palette[0]?.hex ?? "#111111";
-  fillPage(doc, primary);
-  const ink = readableOn(primary);
+  fillPage(doc, "#0a0a0c");
+
+  // Soft spotlight (concentric fading rings for gradient approximation)
+  const primary = identity.palette[0]?.hex ?? "#4F46E5";
+  const { r, g, b } = hexToRgb(primary);
+  for (let i = 12; i >= 0; i--) {
+    const radius = 40 + i * 22;
+    const alpha = 0.04 + (12 - i) * 0.008;
+    doc.setFillColor(r, g, b);
+    doc.setGState(doc.GState({ opacity: alpha }));
+    doc.circle(A4_W / 2, A4_H / 2 - 40, radius, "F");
+  }
+  doc.setGState(doc.GState({ opacity: 1 }));
+
+  const ink = { r: 255, g: 255, b: 255 };
 
   // Top bar
   setTextRgb(doc, ink);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("BRAND GUIDELINE", 48, 56, { charSpace: 2 });
+  doc.setFontSize(8);
+  doc.text("— BRAND GUIDELINE", 48, 56, { charSpace: 3 });
   doc.text(
     String(new Date(project.createdAt).getFullYear()),
     A4_W - 48,
     56,
-    { align: "right", charSpace: 2 }
+    { align: "right", charSpace: 3 }
   );
-
-  // Thin line
   setFillRgb(doc, ink);
-  doc.rect(48, 64, A4_W - 96, 0.6, "F");
+  doc.rect(48, 64, A4_W - 96, 0.4, "F");
 
   // Logo
-  const logos = generateLogos(brief, identity);
-  const logo = logos.find((l) => l.id === "stacked") ?? logos[0];
   try {
-    const png = await svgToPngDataUrl(logo.svg, 700, 700);
-    const size = 220;
-    doc.addImage(png, "PNG", (A4_W - size) / 2, 230, size, size);
+    const png = await svgToPngDataUrl(logoSvg, 1000, 1000);
+    const size = 180;
+    doc.addImage(png, "PNG", (A4_W - size) / 2, A4_H / 2 - 130, size, size);
   } catch {}
 
-  // Brand name
+  // Brand name caps
   setTextRgb(doc, ink);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(56);
-  const nameLines = doc.splitTextToSize(
-    brief.brandName.toUpperCase(),
-    A4_W - 96
-  );
-  doc.text(nameLines, A4_W / 2, 560, { align: "center" });
-
-  // Tagline
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(13);
-  doc.text(identity.tagline, A4_W / 2, 600 + nameLines.length * 10, {
+  doc.setFontSize(48);
+  doc.text(brief.brandName.toUpperCase(), A4_W / 2, A4_H / 2 + 100, {
     align: "center",
   });
 
-  // Bottom
+  // Tagline subtitle
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  setTextRgb(doc, { r: 200, g: 200, b: 210 });
+  doc.text(identity.tagline, A4_W / 2, A4_H / 2 + 130, { align: "center" });
+
+  // Bottom bar
   setFillRgb(doc, ink);
-  doc.rect(48, A4_H - 64, A4_W - 96, 0.6, "F");
-  doc.setFontSize(9);
-  doc.text("VISUAL IDENTITY SYSTEM", 48, A4_H - 48, { charSpace: 2 });
-  doc.text(brief.industry.toUpperCase(), A4_W - 48, A4_H - 48, {
+  doc.rect(48, A4_H - 64, A4_W - 96, 0.4, "F");
+  setTextRgb(doc, ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("VISUAL IDENTITY SYSTEM", 48, A4_H - 44, { charSpace: 3 });
+  doc.text(brief.industry.toUpperCase(), A4_W - 48, A4_H - 44, {
     align: "right",
-    charSpace: 2,
+    charSpace: 3,
   });
 }
 
@@ -254,46 +322,63 @@ function renderEssence({ doc, project }: Ctx) {
   });
 }
 
-async function renderLogoHero({ doc, project }: Ctx) {
+async function renderLogoHero({ doc, project, logoSvg }: Ctx) {
   doc.addPage();
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-  fillPage(doc, primary);
-  const ink = readableOn(primary);
-  setTextRgb(doc, ink);
+  fillPage(doc, "#0a0a0c");
+  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
+  const { r, g, b } = hexToRgb(primary);
 
+  // Spotlight rings behind the logo
+  for (let i = 10; i >= 0; i--) {
+    const radius = 60 + i * 28;
+    const alpha = 0.05 + (10 - i) * 0.01;
+    doc.setFillColor(r, g, b);
+    doc.setGState(doc.GState({ opacity: alpha }));
+    doc.circle(A4_W / 2, A4_H / 2, radius, "F");
+  }
+  doc.setGState(doc.GState({ opacity: 1 }));
+
+  const ink = { r: 255, g: 255, b: 255 };
+  setTextRgb(doc, ink);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("02 / LOGO", 48, 72, { charSpace: 2 });
-  doc.text("PRIMARY MARK", A4_W - 48, 72, {
-    align: "right",
-    charSpace: 2,
-  });
+  doc.text("— IDENTITY MARK", 48, 72, { charSpace: 3 });
+  doc.text("PRIMARY", A4_W - 48, 72, { align: "right", charSpace: 3 });
   setFillRgb(doc, ink);
   doc.rect(48, 80, A4_W - 96, 0.4, "F");
 
-  const logos = generateLogos(project.brief, project.identity);
-  const main = logos.find((l) => l.id === "stacked") ?? logos[0];
   try {
-    const png = await svgToPngDataUrl(main.svg, 800, 800);
-    const size = 320;
-    doc.addImage(png, "PNG", (A4_W - size) / 2, 220, size, size);
+    const png = await svgToPngDataUrl(logoSvg, 1200, 1200);
+    const size = 300;
+    doc.addImage(png, "PNG", (A4_W - size) / 2, (A4_H - size) / 2 - 30, size, size);
   } catch {}
 
-  setTextRgb(doc, ink);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
+  setTextRgb(doc, { r: 200, g: 200, b: 210 });
   const rat = doc.splitTextToSize(
-    `Logo utama ${project.brief.brandName} dibangun dari kombinasi ikon dan wordmark yang merefleksikan kepribadian brand: ${project.brief.personality.join(", ").toLowerCase()}.`,
-    A4_W - 200
+    `Identitas visual ${project.brief.brandName} merefleksikan ${project.brief.personality.join(", ").toLowerCase()}.`,
+    A4_W - 240
   );
-  let y = A4_H - 140;
+  let y = A4_H - 130;
   rat.forEach((line: string) => {
     doc.text(line, A4_W / 2, y, { align: "center" });
-    y += 16;
+    y += 14;
+  });
+
+  setFillRgb(doc, ink);
+  doc.rect(48, A4_H - 64, A4_W - 96, 0.4, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  setTextRgb(doc, ink);
+  doc.text("02 / LOGO", 48, A4_H - 44, { charSpace: 3 });
+  doc.text(project.brief.brandName.toUpperCase(), A4_W - 48, A4_H - 44, {
+    align: "right",
+    charSpace: 3,
   });
 }
 
-async function renderLogoGrid({ doc, project }: Ctx) {
+async function renderLogoGrid({ doc, project, logoSvg }: Ctx) {
   doc.addPage();
   const light = project.identity.palette[4]?.hex ?? "#FAFAF9";
   fillPage(doc, light);
@@ -315,41 +400,47 @@ async function renderLogoGrid({ doc, project }: Ctx) {
   doc.setFont("helvetica", "bold");
   doc.text("LOGO\nFAMILY", 48, 160);
 
-  const logos = generateLogos(project.brief, project.identity);
-  const cellW = (A4_W - 96 - 24) / 3;
-  const cellH = 160;
-  const startY = 300;
+  // Show same selected logo on 4 different backgrounds (primary / light / dark / accent)
+  const bgs = [
+    { label: "PRIMARY", color: primary },
+    { label: "LIGHT", color: light },
+    { label: "DARK", color: project.identity.palette[3]?.hex ?? "#18181B" },
+    { label: "ACCENT", color: project.identity.palette[2]?.hex ?? primary },
+  ];
 
-  for (let i = 0; i < logos.length; i++) {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-    const x = 48 + col * (cellW + 12);
-    const y = startY + row * (cellH + 50);
+  const gap = 14;
+  const cellW = (A4_W - 96 - gap) / 2;
+  const cellH = 210;
+  const startY = 320;
 
-    // Alternate bg (primary on odd, light on even)
-    const alt = i % 2 === 1;
-    if (alt) {
-      setFillRgb(doc, hexToRgb(primary));
-      doc.rect(x, y, cellW, cellH, "F");
-    } else {
-      doc.setDrawColor(ink.r, ink.g, ink.b);
-      doc.setLineWidth(0.4);
-      doc.rect(x, y, cellW, cellH, "S");
+  let png: string | null = null;
+  try {
+    png = await svgToPngDataUrl(logoSvg, 900, 900);
+  } catch {}
+
+  for (let i = 0; i < bgs.length; i++) {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = 48 + col * (cellW + gap);
+    const y = startY + row * (cellH + 40);
+    const bgRgb = hexToRgb(bgs[i].color);
+    const bgInk = readableOn(bgs[i].color);
+
+    setFillRgb(doc, bgRgb);
+    doc.rect(x, y, cellW, cellH, "F");
+
+    if (png) {
+      const s = Math.min(cellW, cellH) - 60;
+      doc.addImage(png, "PNG", x + (cellW - s) / 2, y + (cellH - s) / 2, s, s);
     }
 
-    try {
-      const png = await svgToPngDataUrl(logos[i].svg, 600, 600);
-      const s = Math.min(cellW, cellH) - 40;
-      doc.addImage(png, "PNG", x + (cellW - s) / 2, y + (cellH - s) / 2, s, s);
-    } catch {}
-
-    setTextRgb(doc, ink);
+    // Label at corner of cell
+    setTextRgb(doc, bgInk);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(logos[i].name.toUpperCase(), x, y + cellH + 16, { charSpace: 1 });
+    doc.text(bgs[i].label, x + 12, y + 20, { charSpace: 3 });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.text(`0${i + 1} / 0${logos.length}`, x + cellW, y + cellH + 16, {
+    doc.text(bgs[i].color.toUpperCase(), x + cellW - 12, y + 20, {
       align: "right",
       charSpace: 1,
     });
@@ -567,31 +658,202 @@ function renderTone({ doc, project }: Ctx) {
   });
 }
 
+// ── NEW PAGES ─ Behance case-study style ─────────────────────────────────
+
+function renderManifesto({ doc, project }: Ctx) {
+  doc.addPage();
+  fillPage(doc, "#0a0a0c");
+  const ink = { r: 255, g: 255, b: 255 };
+  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
+  const accentRgb = hexToRgb(primary);
+
+  setTextRgb(doc, ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("— MANIFESTO", 48, 72, { charSpace: 3 });
+  doc.text(
+    project.brief.brandName.toUpperCase(),
+    A4_W - 48,
+    72,
+    { align: "right", charSpace: 3 }
+  );
+
+  // Accent dot (bullet)
+  setFillRgb(doc, accentRgb);
+  doc.circle(A4_W / 2, 200, 6, "F");
+
+  // Centered big quote
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  setTextRgb(doc, ink);
+  const quoteLines = doc.splitTextToSize(
+    `"${project.identity.tagline}"`,
+    A4_W - 160
+  );
+  let y = 280;
+  quoteLines.forEach((line: string) => {
+    doc.text(line, A4_W / 2, y, { align: "center" });
+    y += 36;
+  });
+
+  // Essence paragraph
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  const essLines = doc.splitTextToSize(
+    project.identity.essence,
+    A4_W - 220
+  );
+  y += 30;
+  essLines.forEach((line: string) => {
+    doc.text(line, A4_W / 2, y, { align: "center" });
+    y += 16;
+  });
+
+  // Bottom divider
+  setFillRgb(doc, ink);
+  doc.rect(A4_W / 2 - 30, A4_H - 90, 60, 0.8, "F");
+  doc.setFontSize(8);
+  doc.text(
+    project.brief.industry.toUpperCase(),
+    A4_W / 2,
+    A4_H - 60,
+    { align: "center", charSpace: 3 }
+  );
+}
+
+async function renderMockupsSection({ doc, project, logoSvg }: Ctx) {
+  const scenes = generateMockups(project.identity);
+
+  for (const scene of scenes) {
+    const overlay = project.mockupOverlays?.[scene.id] ?? {
+      x: scene.overlays[0].x,
+      y: scene.overlays[0].y,
+      w: scene.overlays[0].w,
+      h: scene.overlays[0].h,
+      rotate: scene.overlays[0].rotate ?? 0,
+    };
+
+    doc.addPage();
+    fillPage(doc, "#0a0a0c");
+
+    try {
+      const composed = await composeMockup(scene.photo, overlay, logoSvg);
+      const img = await loadImage(composed);
+      // Fit image inside A4 with margin, maintain aspect ratio
+      const margin = 40;
+      const maxW = A4_W - margin * 2;
+      const maxH = A4_H - 180;
+      const ratio = img.width / img.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) {
+        h = maxH;
+        w = h * ratio;
+      }
+      const x = (A4_W - w) / 2;
+      const yTop = 110;
+      doc.addImage(composed, "JPEG", x, yTop, w, h);
+    } catch {
+      // skip on fetch error
+    }
+
+    // Header
+    setTextRgb(doc, { r: 255, g: 255, b: 255 });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("— APPLICATIONS", 48, 72, { charSpace: 3 });
+    doc.text(scene.name.toUpperCase(), A4_W - 48, 72, {
+      align: "right",
+      charSpace: 3,
+    });
+    setFillRgb(doc, { r: 255, g: 255, b: 255 });
+    doc.rect(48, 80, A4_W - 96, 0.4, "F");
+
+    // Footer caption
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    setTextRgb(doc, { r: 180, g: 180, b: 190 });
+    doc.text(
+      `Brand identity applied on ${scene.name.toLowerCase()}.`,
+      A4_W / 2,
+      A4_H - 60,
+      { align: "center" }
+    );
+  }
+}
+
+function renderBackCover({ doc, project }: Ctx) {
+  doc.addPage();
+  const primary = project.identity.palette[0]?.hex ?? "#111";
+  fillPage(doc, primary);
+  const ink = readableOn(primary);
+
+  setTextRgb(doc, ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("— THE END", 48, 72, { charSpace: 3 });
+  doc.text(
+    `${String(new Date(project.createdAt).getFullYear())} © ${project.brief.brandName.toUpperCase()}`,
+    A4_W - 48,
+    72,
+    { align: "right", charSpace: 3 }
+  );
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(48);
+  doc.text("Thank you.", A4_W / 2, A4_H / 2 - 20, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text(project.identity.tagline, A4_W / 2, A4_H / 2 + 20, {
+    align: "center",
+  });
+
+  setFillRgb(doc, ink);
+  doc.rect(48, A4_H - 64, A4_W - 96, 0.5, "F");
+  doc.setFontSize(8);
+  doc.text("BRAND GUIDELINE — END OF DOCUMENT", A4_W / 2, A4_H - 44, {
+    align: "center",
+    charSpace: 3,
+  });
+}
+
 // ── MAIN ─────────────────────────────────────────────────────────────────
 
-export async function buildBrandPDF(project: BrandProject): Promise<jsPDF> {
+export async function buildBrandPDF(
+  project: BrandProject,
+  logoSvg?: string
+): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const ctx: Ctx = { doc, project };
+  const logos = generateLogos(project.brief, project.identity);
+  const resolvedLogoSvg =
+    logoSvg ?? project.customLogoSvg ?? logos[0]?.svg ?? "";
+  const ctx: Ctx = { doc, project, logoSvg: resolvedLogoSvg };
 
   await renderCover(ctx);
+  renderManifesto(ctx);
   renderIndex(ctx);
   renderEssence(ctx);
   await renderLogoHero(ctx);
   await renderLogoGrid(ctx);
+  await renderMockupsSection(ctx);
   renderColorPalette(ctx);
   renderTypography(ctx);
   renderTone(ctx);
+  renderBackCover(ctx);
 
   return doc;
 }
 
-export async function exportBrandPDF(project: BrandProject) {
-  const doc = await buildBrandPDF(project);
+export async function exportBrandPDF(project: BrandProject, logoSvg?: string) {
+  const doc = await buildBrandPDF(project, logoSvg);
   doc.save(`${slugify(project.brief.brandName)}-brand-guideline.pdf`);
 }
 
-export async function previewBrandPDF(project: BrandProject): Promise<string> {
-  const doc = await buildBrandPDF(project);
+export async function previewBrandPDF(
+  project: BrandProject,
+  logoSvg?: string
+): Promise<string> {
+  const doc = await buildBrandPDF(project, logoSvg);
   const blob = doc.output("blob");
   return URL.createObjectURL(blob);
 }

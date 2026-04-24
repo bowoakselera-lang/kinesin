@@ -475,7 +475,7 @@ export default function ProjectDetailPage() {
             <button
               onClick={async () => {
                 setPreviewLoading(true);
-                try { setPreviewUrl(await previewBrandPDF(project)); } finally { setPreviewLoading(false); }
+                try { setPreviewUrl(await previewBrandPDF(project, selectedLogo.svg)); } finally { setPreviewLoading(false); }
               }}
               disabled={previewLoading}
               className="px-5 py-2.5 rounded-xl border border-white/20 text-white text-sm font-medium hover:bg-white/10 transition disabled:opacity-60"
@@ -483,7 +483,7 @@ export default function ProjectDetailPage() {
               {previewLoading ? "Menyiapkan..." : "Preview PDF"}
             </button>
             <button
-              onClick={() => { void exportBrandPDF(project); }}
+              onClick={() => { void exportBrandPDF(project, selectedLogo.svg); }}
               className="px-5 py-2.5 rounded-xl text-sm font-bold transition"
               style={{ backgroundColor: primary, color: primaryInk }}
             >
