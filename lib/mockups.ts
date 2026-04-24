@@ -31,18 +31,17 @@ export function generateMockups(
 
   return [
     {
-      id: "emboss",
-      name: "Emboss / Deboss",
-      photo: "/mockup-timbul-2.png",
+      id: "tshirt",
+      name: "T-Shirt",
+      photo: "/mockup-baju-1.png",
       overlays: [
         {
-          x: 6,
-          y: 18,
-          w: 42,
-          h: 62,
-          bgColor: "#153a2a",
-          bgRadius: 0,
-          opacity: 1,
+          x: 35,
+          y: 35,
+          w: 18,
+          h: 14,
+          blendMode: "multiply",
+          opacity: 0.9,
         },
       ],
     },
