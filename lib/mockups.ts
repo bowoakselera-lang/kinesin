@@ -20,14 +20,10 @@ export type MockupScene = {
   overlays: Overlay[];
 };
 
-const UNSPLASH = (id: string, w = 1200) =>
-  `https://images.unsplash.com/photo-${id}?w=${w}&q=85&auto=format&fit=crop`;
-
 export function generateMockups(
-  identity: BrandIdentity
+  _identity: BrandIdentity
 ): MockupScene[] {
-  const primary = identity.palette[0]?.hex ?? "#111";
-
+  void _identity;
   return [
     {
       id: "tshirt",
@@ -60,18 +56,15 @@ export function generateMockups(
     },
     {
       id: "phone",
-      name: "Mobile App",
-      photo: UNSPLASH("1592899677977-9c10ca588bbd"),
-      credit: "Unsplash",
+      name: "Plang Toko",
+      photo: "/mockup-plang.png",
       overlays: [
         {
-          x: 40,
-          y: 38,
-          w: 20,
-          h: 22,
-          bgColor: primary,
-          bgRadius: 14,
-          opacity: 0.95,
+          x: 24,
+          y: 40,
+          w: 34,
+          h: 20,
+          opacity: 1,
         },
       ],
     },
