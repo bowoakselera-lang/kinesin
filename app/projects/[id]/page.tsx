@@ -345,19 +345,41 @@ export default function ProjectDetailPage() {
                     logoSvg={selectedLogo.svg}
                     onChange={(ov) => handleOverlayChange(m.id, ov)}
                   />
-                  <div className="p-4 bg-white flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-slate-800">{m.name}</span>
-                      {saved && (
-                        <button
-                          onClick={() => handleResetOverlay(m.id)}
-                          className="text-xs text-indigo-600 hover:underline"
-                        >
-                          Reset posisi
-                        </button>
-                      )}
+                  <div className="p-4 bg-white border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-slate-800">{m.name}</span>
+                        {saved && (
+                          <button onClick={() => handleResetOverlay(m.id)} className="text-xs text-indigo-600 hover:underline">
+                            Reset posisi
+                          </button>
+                        )}
+                      </div>
+                      {m.credit && <span className="text-xs text-slate-400">Foto: {m.credit}</span>}
                     </div>
-                    {m.credit && <span className="text-xs text-slate-400">Foto: {m.credit}</span>}
+                    <div className="grid grid-cols-3 gap-4">
+                      <PerspectiveSlider
+                        label="Rotate"
+                        value={current.rotate ?? 0}
+                        min={-180}
+                        max={180}
+                        onChange={(v) => handleOverlayChange(m.id, { ...current, rotate: v })}
+                      />
+                      <PerspectiveSlider
+                        label="Tilt X"
+                        value={current.rotateX ?? 0}
+                        min={-60}
+                        max={60}
+                        onChange={(v) => handleOverlayChange(m.id, { ...current, rotateX: v })}
+                      />
+                      <PerspectiveSlider
+                        label="Tilt Y"
+                        value={current.rotateY ?? 0}
+                        min={-60}
+                        max={60}
+                        onChange={(v) => handleOverlayChange(m.id, { ...current, rotateY: v })}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -475,6 +497,37 @@ export default function ProjectDetailPage() {
 }
 
 // ── COMPONENTS ─────────────────────────────────────────────────────────────
+
+function PerspectiveSlider({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between text-[10px] font-medium text-slate-500">
+        <span className="uppercase tracking-wider">{label}</span>
+        <span className="font-mono text-slate-700">{Math.round(value)}°</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1 bg-slate-200 rounded-full appearance-none cursor-pointer accent-indigo-600"
+      />
+    </div>
+  );
+}
 
 function MockupCanvas({
   photo,
@@ -609,7 +662,8 @@ function MockupCanvas({
           top: `${overlay.y}%`,
           width: `${overlay.w}%`,
           height: `${overlay.h}%`,
-          transform: overlay.rotate ? `rotate(${overlay.rotate}deg)` : undefined,
+          transform: `perspective(1200px) rotateX(${overlay.rotateX ?? 0}deg) rotateY(${overlay.rotateY ?? 0}deg) rotate(${overlay.rotate ?? 0}deg)`,
+          transformStyle: "preserve-3d",
           cursor: "move",
           touchAction: "none",
         }}

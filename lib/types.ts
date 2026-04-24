@@ -38,6 +38,8 @@ export type MockupOverlayState = {
   w: number;
   h: number;
   rotate?: number;
+  rotateX?: number;
+  rotateY?: number;
 };
 
 export type BrandProject = {
