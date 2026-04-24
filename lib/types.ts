@@ -32,6 +32,14 @@ export type BrandIdentity = {
   rationale: string;
 };
 
+export type MockupOverlayState = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotate?: number;
+};
+
 export type BrandProject = {
   id: string;
   createdAt: number;
@@ -39,4 +47,5 @@ export type BrandProject = {
   identity: BrandIdentity;
   customLogoSvg?: string;
   customLogoName?: string;
+  mockupOverlays?: Record<string, MockupOverlayState>;
 };

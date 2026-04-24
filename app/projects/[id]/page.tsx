@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getProject, saveProject } from "@/lib/storage";
 import { exportBrandPDF, previewBrandPDF, brandPdfFilename } from "@/lib/pdf";
 import { generateLogos, downloadSvg, downloadPng } from "@/lib/logo";
 import { generateMockups } from "@/lib/mockups";
-import type { BrandProject } from "@/lib/types";
+import type { BrandProject, MockupOverlayState } from "@/lib/types";
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -89,6 +89,28 @@ export default function ProjectDetailPage() {
     if (selectedLogoId === "custom") {
       setSelectedLogoId("line-monogram");
     }
+  }
+
+  function handleOverlayChange(mockupId: string, next: MockupOverlayState) {
+    if (!project) return;
+    const updated: BrandProject = {
+      ...project,
+      mockupOverlays: {
+        ...(project.mockupOverlays ?? {}),
+        [mockupId]: next,
+      },
+    };
+    saveProject(updated);
+    setProject(updated);
+  }
+
+  function handleResetOverlay(mockupId: string) {
+    if (!project?.mockupOverlays) return;
+    const rest = { ...project.mockupOverlays };
+    delete rest[mockupId];
+    const updated: BrandProject = { ...project, mockupOverlays: rest };
+    saveProject(updated);
+    setProject(updated);
   }
 
   const fontLinks = identity.typography
@@ -299,39 +321,47 @@ export default function ProjectDetailPage() {
       <section style={{ backgroundColor: light }} className="py-24">
         <div className="max-w-6xl mx-auto px-8">
           <SectionLabel num="03" label="Brand Applications" />
+          <p className="text-sm text-slate-600 mt-4">
+            Seret logo untuk menggeser posisinya. Gunakan handle sudut untuk
+            mengubah ukuran. Klik "Reset" kalau mau kembali ke posisi awal.
+          </p>
           <div className="mt-12 space-y-6">
-            {mockups.map((m) => (
-              <div key={m.id} className="rounded-3xl overflow-hidden shadow-xl">
-                <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-                  <img src={m.photo} alt={m.name} className="absolute inset-0 w-full h-full object-cover" />
-                  {m.overlays.map((ov, i) => (
-                    <div
-                      key={i}
-                      className="absolute flex items-center justify-center"
-                      style={{
-                        left: `${ov.x}%`,
-                        top: `${ov.y}%`,
-                        width: `${ov.w}%`,
-                        height: `${ov.h}%`,
-                        transform: ov.rotate ? `rotate(${ov.rotate}deg)` : undefined,
-                        mixBlendMode: ov.blendMode ?? "normal",
-                        opacity: ov.opacity ?? 1,
-                        backgroundColor: ov.bgColor,
-                        borderRadius: ov.bgRadius ? `${ov.bgRadius}px` : undefined,
-                        padding: ov.bgColor ? "6%" : 0,
-                        boxShadow: ov.bgColor ? "0 8px 24px rgba(0,0,0,0.2)" : undefined,
-                      }}
-                    >
-                      <div className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full" dangerouslySetInnerHTML={{ __html: selectedLogo.svg }} />
+            {mockups.map((m) => {
+              const baseOv = m.overlays[0];
+              const saved = project.mockupOverlays?.[m.id];
+              const current: MockupOverlayState = saved ?? {
+                x: baseOv.x,
+                y: baseOv.y,
+                w: baseOv.w,
+                h: baseOv.h,
+                rotate: baseOv.rotate,
+              };
+              return (
+                <div key={m.id} className="rounded-3xl overflow-hidden shadow-xl bg-white">
+                  <MockupCanvas
+                    photo={m.photo}
+                    overlay={current}
+                    base={baseOv}
+                    logoSvg={selectedLogo.svg}
+                    onChange={(ov) => handleOverlayChange(m.id, ov)}
+                  />
+                  <div className="p-4 bg-white flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-slate-800">{m.name}</span>
+                      {saved && (
+                        <button
+                          onClick={() => handleResetOverlay(m.id)}
+                          className="text-xs text-indigo-600 hover:underline"
+                        >
+                          Reset posisi
+                        </button>
+                      )}
                     </div>
-                  ))}
+                    {m.credit && <span className="text-xs text-slate-400">Foto: {m.credit}</span>}
+                  </div>
                 </div>
-                <div className="p-4 bg-white flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-800">{m.name}</span>
-                  {m.credit && <span className="text-xs text-slate-400">Foto: {m.credit}</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -445,6 +475,171 @@ export default function ProjectDetailPage() {
 }
 
 // ── COMPONENTS ─────────────────────────────────────────────────────────────
+
+function MockupCanvas({
+  photo,
+  overlay,
+  base,
+  logoSvg,
+  onChange,
+}: {
+  photo: string;
+  overlay: MockupOverlayState;
+  base: import("@/lib/mockups").Overlay;
+  logoSvg: string;
+  onChange: (ov: MockupOverlayState) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hovering, setHovering] = useState(false);
+  const dragRef = useRef<{
+    mode: "move" | "nw" | "ne" | "sw" | "se";
+    startX: number;
+    startY: number;
+    initial: MockupOverlayState;
+    rectW: number;
+    rectH: number;
+  } | null>(null);
+
+  const beginDrag = (
+    e: React.PointerEvent,
+    mode: "move" | "nw" | "ne" | "sw" | "se"
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = {
+      mode,
+      startX: e.clientX,
+      startY: e.clientY,
+      initial: { ...overlay },
+      rectW: rect.width,
+      rectH: rect.height,
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const st = dragRef.current;
+    if (!st) return;
+    const dxPct = ((e.clientX - st.startX) / st.rectW) * 100;
+    const dyPct = ((e.clientY - st.startY) / st.rectH) * 100;
+    let { x, y, w, h } = st.initial;
+
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+    const MIN = 3;
+
+    switch (st.mode) {
+      case "move":
+        x = clamp(st.initial.x + dxPct, 0, 100 - w);
+        y = clamp(st.initial.y + dyPct, 0, 100 - h);
+        break;
+      case "se":
+        w = clamp(st.initial.w + dxPct, MIN, 100 - st.initial.x);
+        h = clamp(st.initial.h + dyPct, MIN, 100 - st.initial.y);
+        break;
+      case "ne":
+        w = clamp(st.initial.w + dxPct, MIN, 100 - st.initial.x);
+        h = clamp(st.initial.h - dyPct, MIN, st.initial.y + st.initial.h);
+        y = clamp(st.initial.y + dyPct, 0, st.initial.y + st.initial.h - MIN);
+        break;
+      case "sw":
+        w = clamp(st.initial.w - dxPct, MIN, st.initial.x + st.initial.w);
+        h = clamp(st.initial.h + dyPct, MIN, 100 - st.initial.y);
+        x = clamp(st.initial.x + dxPct, 0, st.initial.x + st.initial.w - MIN);
+        break;
+      case "nw":
+        w = clamp(st.initial.w - dxPct, MIN, st.initial.x + st.initial.w);
+        h = clamp(st.initial.h - dyPct, MIN, st.initial.y + st.initial.h);
+        x = clamp(st.initial.x + dxPct, 0, st.initial.x + st.initial.w - MIN);
+        y = clamp(st.initial.y + dyPct, 0, st.initial.y + st.initial.h - MIN);
+        break;
+    }
+    onChange({ x, y, w, h, rotate: st.initial.rotate });
+  };
+
+  const endDrag = () => { dragRef.current = null; };
+
+  const handleSize = 14;
+  const handleStyle: React.CSSProperties = {
+    position: "absolute",
+    width: handleSize,
+    height: handleSize,
+    background: "#fff",
+    border: "2px solid #4f46e5",
+    borderRadius: "50%",
+    touchAction: "none",
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full select-none"
+      style={{ aspectRatio: "16 / 9" }}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+      <div
+        className="absolute group"
+        style={{
+          left: `${overlay.x}%`,
+          top: `${overlay.y}%`,
+          width: `${overlay.w}%`,
+          height: `${overlay.h}%`,
+          transform: overlay.rotate ? `rotate(${overlay.rotate}deg)` : undefined,
+          cursor: "move",
+          touchAction: "none",
+        }}
+        onPointerDown={(e) => beginDrag(e, "move")}
+      >
+        <div
+          className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full"
+          style={{
+            mixBlendMode: base.blendMode ?? "normal",
+            opacity: base.opacity ?? 1,
+            backgroundColor: base.bgColor,
+            borderRadius: base.bgRadius ? `${base.bgRadius}px` : undefined,
+            padding: base.bgColor ? "6%" : 0,
+            boxShadow: base.bgColor ? "0 8px 24px rgba(0,0,0,0.2)" : undefined,
+          }}
+          dangerouslySetInnerHTML={{ __html: logoSvg }}
+        />
+        {/* Outline + handles (only visible on hover) */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity"
+          style={{
+            outline: hovering ? "1.5px dashed #4f46e5" : "none",
+            opacity: hovering ? 1 : 0,
+          }}
+        />
+        {hovering && (
+          <>
+            <div
+              style={{ ...handleStyle, left: -handleSize / 2, top: -handleSize / 2, cursor: "nwse-resize" }}
+              onPointerDown={(e) => beginDrag(e, "nw")}
+            />
+            <div
+              style={{ ...handleStyle, right: -handleSize / 2, top: -handleSize / 2, cursor: "nesw-resize" }}
+              onPointerDown={(e) => beginDrag(e, "ne")}
+            />
+            <div
+              style={{ ...handleStyle, left: -handleSize / 2, bottom: -handleSize / 2, cursor: "nesw-resize" }}
+              onPointerDown={(e) => beginDrag(e, "sw")}
+            />
+            <div
+              style={{ ...handleStyle, right: -handleSize / 2, bottom: -handleSize / 2, cursor: "nwse-resize" }}
+              onPointerDown={(e) => beginDrag(e, "se")}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SectionLabel({ num, label, light }: { num: string; label: string; light?: boolean }) {
   return (

@@ -32,17 +32,17 @@ export function generateMockups(
   return [
     {
       id: "tshirt",
-      name: "T-Shirt",
-      photo: UNSPLASH("1521572163474-6864f9cf17ab"),
+      name: "T-Shirt & Cap",
+      photo: UNSPLASH("1588117305388-c2631a279f82"),
       credit: "Unsplash",
       overlays: [
         {
-          x: 43,
-          y: 40,
-          w: 14,
-          h: 10,
+          x: 40,
+          y: 6,
+          w: 10,
+          h: 7,
           blendMode: "multiply",
-          opacity: 0.92,
+          opacity: 0.85,
         },
       ],
     },
