@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getProject } from "@/lib/storage";
+import { getProject, saveProject } from "@/lib/storage";
 import { exportBrandPDF, previewBrandPDF, brandPdfFilename } from "@/lib/pdf";
 import { generateLogos, downloadSvg, downloadPng } from "@/lib/logo";
 import { generateMockups } from "@/lib/mockups";
@@ -32,13 +32,64 @@ export default function ProjectDetailPage() {
   if (!mounted || !project) return null;
 
   const { brief, identity } = project;
-  const logos = generateLogos(brief, identity);
+  const generatedLogos = generateLogos(brief, identity);
+  const customLogo = project.customLogoSvg
+    ? {
+        id: "custom",
+        name: project.customLogoName || "Logo Kustom",
+        style: "monogram-circle" as const,
+        svg: project.customLogoSvg,
+      }
+    : null;
+  const logos = customLogo ? [customLogo, ...generatedLogos] : generatedLogos;
   const primary = identity.palette[0]?.hex ?? "#4F46E5";
   const dark = identity.palette[3]?.hex ?? "#18181B";
   const light = identity.palette[4]?.hex ?? "#FAFAF9";
   const primaryInk = isLight(primary) ? "#0f172a" : "#ffffff";
   const selectedLogo = logos.find((l) => l.id === selectedLogoId) ?? logos[0];
   const mockups = generateMockups(identity);
+
+  async function handleLogoUpload(file: File) {
+    if (!project) return;
+    const reader = new FileReader();
+    const svgString = await new Promise<string>((resolve, reject) => {
+      if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsText(file);
+      } else {
+        reader.onload = () => {
+          const dataUrl = String(reader.result);
+          const wrapped = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><image href="${dataUrl}" x="0" y="0" width="200" height="200" preserveAspectRatio="xMidYMid meet"/></svg>`;
+          resolve(wrapped);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }
+    });
+    const updated: BrandProject = {
+      ...project,
+      customLogoSvg: svgString,
+      customLogoName: file.name.replace(/\.[^.]+$/, ""),
+    };
+    saveProject(updated);
+    setProject(updated);
+    setSelectedLogoId("custom");
+  }
+
+  function handleRemoveCustomLogo() {
+    if (!project) return;
+    const updated: BrandProject = {
+      ...project,
+      customLogoSvg: undefined,
+      customLogoName: undefined,
+    };
+    saveProject(updated);
+    setProject(updated);
+    if (selectedLogoId === "custom") {
+      setSelectedLogoId("line-monogram");
+    }
+  }
 
   const fontLinks = identity.typography
     .map((t) => encodeURIComponent(t.fontFamily.trim()).replace(/%20/g, "+"))
@@ -146,9 +197,10 @@ export default function ProjectDetailPage() {
         {/* Logo picker strip */}
         <div className="border-t border-white/10">
           <div className="max-w-6xl mx-auto px-8 py-10">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {logos.map((logo) => {
                 const active = logo.id === selectedLogoId;
+                const isCustom = logo.id === "custom";
                 return (
                   <button
                     key={logo.id}
@@ -159,6 +211,25 @@ export default function ProjectDetailPage() {
                         : "bg-white/5 hover:bg-white/10"
                     }`}
                   >
+                    {isCustom && (
+                      <span className="absolute top-2 left-2 text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-white text-slate-900">
+                        KUSTOM
+                      </span>
+                    )}
+                    {isCustom && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveCustomLogo();
+                        }}
+                        className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/10 hover:bg-red-500 text-white text-xs flex items-center justify-center cursor-pointer"
+                        title="Hapus logo kustom"
+                      >
+                        ×
+                      </span>
+                    )}
                     <div
                       className="w-full h-full flex items-center justify-center"
                       dangerouslySetInnerHTML={{ __html: logo.svg }}
@@ -171,6 +242,29 @@ export default function ProjectDetailPage() {
                   </button>
                 );
               })}
+
+              {/* Upload tile */}
+              {!customLogo && (
+                <label className="relative rounded-2xl p-4 aspect-square flex flex-col items-center justify-center transition-all bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/20 cursor-pointer group">
+                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3 group-hover:bg-white/20 transition">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-white/80 text-center px-2">Upload Logo Sendiri</span>
+                  <span className="text-[10px] text-white/40 mt-1 text-center px-2">SVG · PNG · JPG</span>
+                  <input
+                    type="file"
+                    accept=".svg,.png,.jpg,.jpeg,image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleLogoUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
             </div>
             <div className="flex gap-3 justify-center mt-8">
               <button onClick={() => downloadSvg(selectedLogo.svg, `${slugify(brief.brandName)}-logo.svg`)} className="px-5 py-2 rounded-lg text-sm font-medium border border-white/20 text-white hover:bg-white/10 transition">
@@ -179,6 +273,21 @@ export default function ProjectDetailPage() {
               <button onClick={() => downloadPng(selectedLogo.svg, `${slugify(brief.brandName)}-logo.png`)} className="px-5 py-2 rounded-lg text-sm font-medium border border-white/20 text-white hover:bg-white/10 transition">
                 Download PNG
               </button>
+              {customLogo && (
+                <label className="px-5 py-2 rounded-lg text-sm font-medium border border-white/20 text-white hover:bg-white/10 transition cursor-pointer">
+                  Ganti Logo Kustom
+                  <input
+                    type="file"
+                    accept=".svg,.png,.jpg,.jpeg,image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleLogoUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
             </div>
           </div>
         </div>

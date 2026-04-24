@@ -37,4 +37,6 @@ export type BrandProject = {
   createdAt: number;
   brief: BrandBrief;
   identity: BrandIdentity;
+  customLogoSvg?: string;
+  customLogoName?: string;
 };
