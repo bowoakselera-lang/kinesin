@@ -27,7 +27,6 @@ export function generateMockups(
   identity: BrandIdentity
 ): MockupScene[] {
   const primary = identity.palette[0]?.hex ?? "#111";
-  const light = identity.palette[4]?.hex ?? "#FAFAF9";
 
   return [
     {
@@ -47,18 +46,15 @@ export function generateMockups(
     },
     {
       id: "laptop",
-      name: "Website / Laptop",
-      photo: UNSPLASH("1496181133206-80ce9b88a853"),
-      credit: "Unsplash",
+      name: "Website Hero",
+      photo: "/mockup-ke-2.png",
       overlays: [
         {
-          x: 39,
-          y: 32,
-          w: 22,
-          h: 14,
-          bgColor: light,
-          bgRadius: 3,
-          opacity: 0.95,
+          x: 9,
+          y: 35,
+          w: 24,
+          h: 30,
+          opacity: 1,
         },
       ],
     },
