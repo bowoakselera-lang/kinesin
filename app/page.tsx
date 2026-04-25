@@ -26,39 +26,48 @@ export default function Home() {
           <span className="font-mono">{new Date().getFullYear()}©</span>
         </div>
 
-        {/* Top headline — compact, narrower so image stays visible */}
-        <div className="relative z-10 px-6 pt-10 md:pt-16 text-center">
-          <div className="text-xs md:text-sm font-bold tracking-[0.3em]">
+        {/* Centered content */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-32">
+          <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05] max-w-3xl mx-auto">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] max-w-5xl">
             <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
-            <span className="text-white">yang bergerak</span>{" "}
-            <span style={{ color: "#f767bc" }}>maju.</span>
+            <span className="text-white">yang</span>
+            <br />
+            <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
+            <span className="text-white">maju</span>
+            <br />
+            <span className="text-white">tanpa hambatan.</span>
           </h1>
-        </div>
 
-        {/* Bottom CTA block — leaves the protein visible in the middle */}
-        <div className="relative z-10 mt-auto px-6 pb-24 text-center">
-          <p className="text-xs md:text-sm text-white/70 max-w-md mx-auto leading-relaxed mb-6">
-            Identitas visual, palet warna, tipografi, dan mockup brand — siap export jadi PDF guideline.
+          <p className="mt-8 text-sm md:text-base text-white/70 max-w-md leading-relaxed">
+            Identitas visual, palet warna, tipografi, dan
+            <br className="hidden md:block" />
+            mockup brand — siap export jadi PDF guideline.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Link
               href="/create"
-              className="group relative px-7 py-3 rounded-full bg-white text-black font-bold text-sm hover:scale-105 transition-transform"
+              className="group relative px-8 py-4 rounded-full bg-white text-black font-bold text-base hover:scale-105 transition-transform"
             >
               Mulai Buat Brand
             </Link>
             <Link
               href="/projects"
-              className="px-7 py-3 rounded-full border border-white/25 text-white font-medium text-sm hover:bg-white/10 transition backdrop-blur-sm"
+              className="px-8 py-4 rounded-full border border-white/25 text-white font-medium text-base hover:bg-white/10 transition backdrop-blur-sm"
             >
               Proyek Tersimpan
             </Link>
           </div>
+        </div>
+
+        {/* Bottom-left tag */}
+        <div className="absolute bottom-6 left-8 z-10 text-xs text-white/50 font-mono tracking-wider">
+          [001] · scroll to explore ↓
         </div>
 
         {/* Bottom-left tag */}
