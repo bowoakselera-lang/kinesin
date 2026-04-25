@@ -33,14 +33,18 @@ export default function Home() {
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95]">
-            <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
-            <span className="text-white">yang</span>
-            <br />
-            <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
-            <span className="text-white">maju</span>
-            <br />
-            <span className="text-white">tanpa hambatan.</span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.0]">
+            <span className="block whitespace-nowrap">
+              <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
+              <span className="text-white">yang</span>
+            </span>
+            <span className="block whitespace-nowrap">
+              <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
+              <span className="text-white">maju</span>
+            </span>
+            <span className="block whitespace-nowrap text-white">
+              tanpa hambatan.
+            </span>
           </h1>
 
           <p className="mt-8 text-sm md:text-base text-white/70 max-w-md leading-relaxed">
