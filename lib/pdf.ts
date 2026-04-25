@@ -821,12 +821,9 @@ function renderBackCover({ doc, project }: Ctx) {
 
 async function renderMockupsOnly({ doc, project, logoSvg }: Ctx) {
   const scenes = generateMockups(project.identity);
-  const PAGE_W = doc.internal.pageSize.getWidth();
-  const PAGE_H = doc.internal.pageSize.getHeight();
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    if (i > 0) doc.addPage();
 
     const overlay = project.mockupOverlays?.[scene.id] ?? {
       x: scene.overlays[0].x,
@@ -836,43 +833,41 @@ async function renderMockupsOnly({ doc, project, logoSvg }: Ctx) {
       rotate: scene.overlays[0].rotate ?? 0,
     };
 
-    // Black bg
-    fillPage(doc, "#0a0a0c");
-
+    let composed: string | null = null;
+    let ratio = 16 / 9;
     try {
-      const composed = await composeMockup(scene.photo, overlay, logoSvg);
+      composed = await composeMockup(scene.photo, overlay, logoSvg);
       const img = await loadImage(composed);
-      const margin = 24;
-      const maxW = PAGE_W - margin * 2;
-      const maxH = PAGE_H - margin * 2;
-      const ratio = img.width / img.height;
-      let w = maxW;
-      let h = w / ratio;
-      if (h > maxH) {
-        h = maxH;
-        w = h * ratio;
-      }
-      const x = (PAGE_W - w) / 2;
-      const y = (PAGE_H - h) / 2;
-      doc.addImage(composed, "JPEG", x, y, w, h);
-    } catch {
-      setTextRgb(doc, { r: 255, g: 255, b: 255 });
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("Failed to load mockup", PAGE_W / 2, PAGE_H / 2, {
-        align: "center",
-      });
+      ratio = img.width / img.height;
+    } catch {}
+
+    // Build a page sized to match the mockup's aspect ratio.
+    const PAGE_W = 1200;
+    const PAGE_H = Math.round(PAGE_W / ratio);
+    if (i === 0) {
+      doc.deletePage(1);
+      doc.addPage([PAGE_W, PAGE_H], PAGE_W > PAGE_H ? "landscape" : "portrait");
+    } else {
+      doc.addPage([PAGE_W, PAGE_H], PAGE_W > PAGE_H ? "landscape" : "portrait");
     }
 
-    // Tiny corner labels
-    setTextRgb(doc, { r: 255, g: 255, b: 255 });
+    // Background
+    doc.setFillColor(10, 10, 12);
+    doc.rect(0, 0, PAGE_W, PAGE_H, "F");
+
+    if (composed) {
+      doc.addImage(composed, "JPEG", 0, 0, PAGE_W, PAGE_H);
+    }
+
+    // Tiny corner label (over image)
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(scene.name.toUpperCase(), 24, 18, { charSpace: 3 });
+    doc.setFontSize(11);
+    doc.text(scene.name.toUpperCase(), 28, 32, { charSpace: 3 });
     doc.text(
       `0${i + 1} / 0${scenes.length}`,
-      PAGE_W - 24,
-      18,
+      PAGE_W - 28,
+      32,
       { align: "right", charSpace: 2 }
     );
   }
@@ -884,7 +879,7 @@ export async function buildBrandPDF(
   project: BrandProject,
   logoSvg?: string
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
   const logos = generateLogos(project.brief, project.identity);
   const resolvedLogoSvg =
     logoSvg ?? project.customLogoSvg ?? logos[0]?.svg ?? "";
