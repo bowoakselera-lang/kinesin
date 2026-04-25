@@ -37,12 +37,12 @@ export default function Home() {
             className="uppercase text-4xl sm:text-5xl md:text-6xl lg:text-[5rem] xl:text-[6.25rem] tracking-tight leading-[0.95]"
             style={{ fontFamily: "var(--font-display), sans-serif" }}
           >
-            <span className="block whitespace-nowrap" style={{ color: "#f767bc", fontWeight: 700 }}>
+            <span className="block whitespace-nowrap" style={{ color: "#f767bc", fontWeight: 200 }}>
               Bangun brand
             </span>
             <span className="block whitespace-nowrap">
               <span className="text-white" style={{ fontWeight: 700 }}>yang</span>{" "}
-              <span style={{ color: "#f767bc", fontWeight: 700 }}>bergerak</span>{" "}
+              <span style={{ color: "#f767bc", fontWeight: 200 }}>bergerak</span>{" "}
               <span className="text-white" style={{ fontWeight: 700 }}>maju</span>
             </span>
             <span className="block whitespace-nowrap text-white" style={{ fontWeight: 700 }}>
