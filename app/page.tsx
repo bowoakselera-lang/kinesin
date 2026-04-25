@@ -8,7 +8,7 @@ export default function Home() {
         {/* Background image */}
         <div className="absolute inset-0 pointer-events-none">
           <img
-            src="/tampilan-landing-2.png"
+            src="/tampilan-landing-fix.png"
             alt=""
             className="absolute inset-0 w-full h-full object-cover opacity-90"
             style={{ objectPosition: "center bottom" }}
