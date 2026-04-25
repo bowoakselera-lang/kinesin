@@ -27,14 +27,14 @@ export default function Home() {
         </div>
 
         {/* Left-aligned content */}
-        <div className="relative z-10 flex-1 flex flex-col items-start justify-center pl-6 md:pl-24 lg:pl-32 pr-6 text-left pb-24 pt-32">
+        <div className="relative z-10 flex-1 flex flex-col items-start justify-center pl-6 md:pl-10 lg:pl-16 pr-6 text-left pb-24 pt-32">
           <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
           <h1
-            className="uppercase text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] xl:text-[7.5rem] tracking-tight leading-[0.95]"
+            className="uppercase text-4xl sm:text-5xl md:text-6xl lg:text-[5rem] xl:text-[6.25rem] tracking-tight leading-[0.95]"
             style={{ fontFamily: "var(--font-display), sans-serif" }}
           >
             <span className="block whitespace-nowrap" style={{ color: "#f767bc", fontWeight: 200 }}>
