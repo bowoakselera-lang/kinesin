@@ -17,6 +17,47 @@ export default function Home() {
           <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black via-black/80 to-transparent" />
           {/* Bottom fade for text legibility */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/60 to-transparent" />
+
+          {/* Floating kinesin objects */}
+          <img
+            src="/object-animation.png"
+            alt=""
+            className="absolute hidden md:block animate-walk-slow drop-shadow-[0_0_40px_rgba(139,92,246,0.5)]"
+            style={{
+              left: "5%",
+              top: "18%",
+              width: 130,
+              opacity: 0.7,
+              animationDelay: "0s",
+            }}
+          />
+          <img
+            src="/object-animation.png"
+            alt=""
+            className="absolute hidden md:block animate-walk-slow drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+            style={{
+              right: "7%",
+              top: "30%",
+              width: 100,
+              opacity: 0.55,
+              animationDelay: "1.5s",
+              animationDuration: "9s",
+              transform: "scaleX(-1)",
+            }}
+          />
+          <img
+            src="/object-animation.png"
+            alt=""
+            className="absolute hidden lg:block animate-walk-slow drop-shadow-[0_0_25px_rgba(139,92,246,0.3)]"
+            style={{
+              left: "12%",
+              bottom: "18%",
+              width: 80,
+              opacity: 0.4,
+              animationDelay: "3s",
+              animationDuration: "11s",
+            }}
+          />
         </div>
 
         {/* Top corner labels */}
