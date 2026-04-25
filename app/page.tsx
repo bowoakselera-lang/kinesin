@@ -1,125 +1,72 @@
 import Link from "next/link";
 
-const COLORS = ["#4F46E5", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6"];
-
 export default function Home() {
   return (
     <div className="relative overflow-hidden">
       {/* ─── HERO ─── */}
-      <section className="relative min-h-[92vh] flex items-center justify-center bg-slate-950 text-white overflow-hidden">
-        {/* Gradient orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[140px] animate-pulse-slow" />
-          <div className="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-pink-600/15 blur-[120px] animate-pulse-slow [animation-delay:2s]" />
-          <div className="absolute -bottom-20 left-1/3 w-[400px] h-[400px] rounded-full bg-violet-500/15 blur-[100px] animate-pulse-slow [animation-delay:4s]" />
+      <section className="relative min-h-screen flex flex-col bg-black text-white overflow-hidden -mt-[60px] pt-[60px]">
+        {/* Background image */}
+        <div className="absolute inset-0 pointer-events-none">
+          <img
+            src="/tampilan-landing.png"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-90"
+            style={{ objectPosition: "center bottom" }}
+          />
+          {/* Top fade to black */}
+          <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black via-black/80 to-transparent" />
+          {/* Bottom fade for text legibility */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/60 to-transparent" />
         </div>
 
-        {/* Floating decorative shapes */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Color swatches */}
-          {COLORS.map((c, i) => (
-            <div
-              key={c}
-              className="absolute rounded-xl animate-float"
-              style={{
-                width: 50 + i * 8,
-                height: 50 + i * 8,
-                backgroundColor: c,
-                opacity: 0.15 + i * 0.04,
-                left: `${12 + i * 18}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                animationDelay: `${i * 0.8}s`,
-                animationDuration: `${6 + i}s`,
-                transform: `rotate(${i * 15}deg)`,
-              }}
-            />
-          ))}
-          {/* Typography "Aa" floater */}
-          <div className="absolute right-[8%] top-[18%] text-[180px] font-bold text-white/[0.04] animate-float [animation-delay:1s] [animation-duration:8s] select-none">
-            Aa
-          </div>
-          {/* Circle ring */}
-          <div className="absolute left-[6%] bottom-[20%] w-32 h-32 rounded-full border-2 border-white/[0.06] animate-float [animation-delay:3s] [animation-duration:10s]" />
-          <div className="absolute right-[15%] bottom-[15%] w-20 h-20 rounded-full border border-indigo-500/20 animate-float [animation-delay:2s] [animation-duration:7s]" />
-          {/* Grid dots */}
-          <div className="absolute left-[12%] top-[60%] grid grid-cols-3 gap-2 opacity-10">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className="w-1.5 h-1.5 rounded-full bg-white" />
-            ))}
-          </div>
+        {/* Top corner labels */}
+        <div className="relative z-10 flex justify-between items-start px-8 pt-6 text-xs font-medium text-white/70">
+          <span className="lowercase tracking-wide">brand identity</span>
+          <span className="font-mono">{new Date().getFullYear()}©</span>
         </div>
 
-        {/* Grain texture overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Content */}
-        <div className="relative max-w-5xl mx-auto px-6 text-center z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm mb-8">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm text-slate-300">
-              Gratis · Tanpa login · Langsung pakai
-            </span>
+        {/* Centered content */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-32">
+          <div className="mb-6 text-sm font-bold tracking-[0.3em]">
+            <span className="text-white">KINESIN</span>{" "}
+            <span className="text-indigo-400">STUDIO</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tight leading-[0.95] mb-6">
-            <span className="bg-gradient-to-r from-white via-white to-slate-400 bg-clip-text text-transparent">
-              Brand Identity
-            </span>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] max-w-5xl">
+            <span className="text-indigo-400">Bangun brand</span>{" "}
+            <span className="text-white">yang</span>
             <br />
-            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Generator
-            </span>
+            <span className="text-indigo-400">bergerak</span>{" "}
+            <span className="text-white">maju</span>
+            <br />
+            <span className="text-white">tanpa hambatan.</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Masukkan visi dan kepribadian brand-mu. Dapatkan{" "}
-            <span className="text-white font-medium">palet warna</span>,{" "}
-            <span className="text-white font-medium">tipografi</span>,{" "}
-            <span className="text-white font-medium">logo</span>,{" "}
-            dan{" "}
-            <span className="text-white font-medium">
-              tone of voice
-            </span>{" "}
-            — lengkap export jadi PDF guideline.
+          <p className="mt-8 text-sm md:text-base text-white/70 max-w-md leading-relaxed">
+            Identitas visual, palet warna, tipografi, dan
+            <br className="hidden md:block" />
+            mockup brand — siap export jadi PDF guideline.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Link
               href="/create"
-              className="group relative px-8 py-4 rounded-xl bg-white text-slate-900 font-bold text-lg hover:scale-105 transition-transform"
+              className="group relative px-8 py-4 rounded-full bg-white text-black font-bold text-base hover:scale-105 transition-transform"
             >
-              <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity blur-xl -z-10" />
               Mulai Buat Brand
             </Link>
             <Link
               href="/projects"
-              className="px-8 py-4 rounded-xl border border-white/15 text-white font-medium text-lg hover:bg-white/5 transition backdrop-blur-sm"
+              className="px-8 py-4 rounded-full border border-white/25 text-white font-medium text-base hover:bg-white/10 transition backdrop-blur-sm"
             >
               Proyek Tersimpan
             </Link>
           </div>
+        </div>
 
-          {/* Scroll hint */}
-          <div className="mt-20 animate-bounce">
-            <svg
-              className="w-6 h-6 mx-auto text-slate-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
-            </svg>
-          </div>
+        {/* Bottom-left tag */}
+        <div className="absolute bottom-6 left-8 z-10 text-xs text-white/50 font-mono tracking-wider">
+          [001] · scroll to explore ↓
         </div>
       </section>
 
