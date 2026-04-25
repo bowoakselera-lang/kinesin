@@ -30,14 +30,14 @@ export default function Home() {
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-32">
           <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
-            <span className="text-indigo-400">STUDIO</span>
+            <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] max-w-5xl">
-            <span className="text-indigo-400">Bangun brand</span>{" "}
+            <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
             <span className="text-white">yang</span>
             <br />
-            <span className="text-indigo-400">bergerak</span>{" "}
+            <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
             <span className="text-white">maju</span>
             <br />
             <span className="text-white">tanpa hambatan.</span>
