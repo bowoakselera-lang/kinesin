@@ -34,7 +34,7 @@ export default function Home() {
           </div>
 
           <h1
-            className="text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[9.5rem] tracking-tight leading-[0.92]"
+            className="uppercase text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[9.5rem] tracking-tight leading-[0.92]"
             style={{ fontFamily: "var(--font-display), sans-serif" }}
           >
             <span className="block whitespace-nowrap" style={{ color: "#f767bc", fontWeight: 200 }}>
