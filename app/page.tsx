@@ -33,16 +33,19 @@ export default function Home() {
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[6.5rem] xl:text-[7.5rem] font-black tracking-tight leading-[0.95]">
-            <span className="block whitespace-nowrap" style={{ color: "#f767bc" }}>
+          <h1
+            className="text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[9.5rem] tracking-tight leading-[0.92]"
+            style={{ fontFamily: "var(--font-display), sans-serif" }}
+          >
+            <span className="block whitespace-nowrap" style={{ color: "#f767bc", fontWeight: 200 }}>
               Bangun brand
             </span>
             <span className="block whitespace-nowrap">
-              <span className="text-white">yang</span>{" "}
-              <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
-              <span className="text-white">maju</span>
+              <span className="text-white" style={{ fontWeight: 700 }}>yang</span>{" "}
+              <span style={{ color: "#f767bc", fontWeight: 200 }}>bergerak</span>{" "}
+              <span className="text-white" style={{ fontWeight: 700 }}>maju</span>
             </span>
-            <span className="block whitespace-nowrap text-white">
+            <span className="block whitespace-nowrap text-white" style={{ fontWeight: 700 }}>
               tanpa hambatan.
             </span>
           </h1>
