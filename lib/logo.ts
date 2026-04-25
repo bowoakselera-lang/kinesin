@@ -288,8 +288,8 @@ export async function svgToPngDataUrl(svg: string, width = 800, height = 400): P
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas 2D not available"));
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
+      // Transparent background — let underlying SVG control its own bg
+      ctx.clearRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL("image/png"));
     };
