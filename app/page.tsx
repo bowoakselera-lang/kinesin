@@ -27,7 +27,7 @@ export default function Home() {
         </div>
 
         {/* Left-aligned content */}
-        <div className="relative z-10 flex-1 flex flex-col items-start justify-center px-6 md:px-12 text-left pb-32">
+        <div className="relative z-10 flex-1 flex flex-col items-start justify-center pl-6 md:pl-24 lg:pl-32 pr-6 text-left pb-24 pt-32">
           <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
             <span style={{ color: "#f767bc" }}>STUDIO</span>
