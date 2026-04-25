@@ -91,7 +91,7 @@ export default function Home() {
             {[
               { hex: "#4F46E5", name: "Primary" },
               { hex: "#818CF8", name: "Secondary" },
-              { hex: "#F59E0B", name: "Accent" },
+              { hex: "#F767BC", name: "Accent" },
               { hex: "#1E293B", name: "Dark" },
               { hex: "#F1F5F9", name: "Light" },
             ].map((c) => (
@@ -103,10 +103,7 @@ export default function Home() {
                 <span
                   className="text-[10px] md:text-xs font-mono font-medium hidden md:block"
                   style={{
-                    color:
-                      c.hex === "#F1F5F9" || c.hex === "#F59E0B"
-                        ? "#0f172a"
-                        : "#fff",
+                    color: c.hex === "#F1F5F9" ? "#0f172a" : "#fff",
                   }}
                 >
                   {c.hex}
