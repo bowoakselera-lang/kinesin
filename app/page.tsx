@@ -26,14 +26,14 @@ export default function Home() {
           <span className="font-mono">{new Date().getFullYear()}©</span>
         </div>
 
-        {/* Centered content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pb-32">
+        {/* Left-aligned content */}
+        <div className="relative z-10 flex-1 flex flex-col items-start justify-center px-6 md:px-16 text-left pb-32 max-w-4xl">
           <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] max-w-5xl">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95]">
             <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
             <span className="text-white">yang</span>
             <br />
@@ -49,7 +49,7 @@ export default function Home() {
             mockup brand — siap export jadi PDF guideline.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+          <div className="flex flex-col sm:flex-row gap-4 mt-10">
             <Link
               href="/create"
               className="group relative px-8 py-4 rounded-full bg-white text-black font-bold text-base hover:scale-105 transition-transform"
