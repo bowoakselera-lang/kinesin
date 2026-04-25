@@ -220,30 +220,35 @@ export default function Home() {
                 label: "PALET WARNA",
                 title: "5 warna harmonis + tints",
                 desc: "Warna primer, sekunder, aksen, dan netral dipilih berdasar psikologi warna & kepribadian brand. Lengkap dengan gradasi 20–80%.",
-                bg: "bg-gradient-to-br from-indigo-600 to-violet-700",
+                bg: "linear-gradient(to bottom right, #4F46E5, #6366F1)",
+                ink: "#ffffff",
               },
               {
                 label: "TIPOGRAFI",
                 title: "Pasangan font Google Fonts",
                 desc: "Heading & body font yang cocok, lengkap dengan specimen alfabet dan skala weight.",
-                bg: "bg-gradient-to-br from-slate-800 to-slate-950",
+                bg: "linear-gradient(to bottom right, #1E293B, #0F172A)",
+                ink: "#ffffff",
               },
               {
                 label: "LOGO",
                 title: "3 variasi logo otomatis",
                 desc: "Monogram, wordmark, dan negative space — semua bisa diunduh SVG & PNG. Preview langsung di mockup.",
-                bg: "bg-gradient-to-br from-pink-600 to-rose-700",
+                bg: "linear-gradient(to bottom right, #F767BC, #DB4DA1)",
+                ink: "#ffffff",
               },
               {
                 label: "PDF GUIDELINE",
                 title: "Export editorial-style",
                 desc: "PDF bergaya Behance case study: cover, essence, logo showcase, palette, typography, tone of voice.",
-                bg: "bg-gradient-to-br from-amber-500 to-orange-600",
+                bg: "linear-gradient(to bottom right, #818CF8, #6366F1)",
+                ink: "#ffffff",
               },
             ].map((f) => (
               <div
                 key={f.label}
-                className={`${f.bg} rounded-2xl p-8 md:p-10 text-white flex flex-col justify-end min-h-[240px]`}
+                className="rounded-2xl p-8 md:p-10 flex flex-col justify-end min-h-[240px]"
+                style={{ background: f.bg, color: f.ink }}
               >
                 <p className="text-xs font-bold tracking-widest opacity-70 mb-2">
                   {f.label}
