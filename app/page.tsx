@@ -33,7 +33,7 @@ export default function Home() {
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[9.5rem] font-black tracking-tight leading-[0.95]">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[6.5rem] xl:text-[7.5rem] font-black tracking-tight leading-[0.95]">
             <span className="block whitespace-nowrap" style={{ color: "#f767bc" }}>
               Bangun brand
             </span>
