@@ -817,29 +817,80 @@ function renderBackCover({ doc, project }: Ctx) {
   });
 }
 
+// ── SIMPLIFIED: MOCKUPS ONLY ─────────────────────────────────────────────
+
+async function renderMockupsOnly({ doc, project, logoSvg }: Ctx) {
+  const scenes = generateMockups(project.identity);
+  const PAGE_W = doc.internal.pageSize.getWidth();
+  const PAGE_H = doc.internal.pageSize.getHeight();
+
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i];
+    if (i > 0) doc.addPage();
+
+    const overlay = project.mockupOverlays?.[scene.id] ?? {
+      x: scene.overlays[0].x,
+      y: scene.overlays[0].y,
+      w: scene.overlays[0].w,
+      h: scene.overlays[0].h,
+      rotate: scene.overlays[0].rotate ?? 0,
+    };
+
+    // Black bg
+    fillPage(doc, "#0a0a0c");
+
+    try {
+      const composed = await composeMockup(scene.photo, overlay, logoSvg);
+      const img = await loadImage(composed);
+      const margin = 24;
+      const maxW = PAGE_W - margin * 2;
+      const maxH = PAGE_H - margin * 2;
+      const ratio = img.width / img.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) {
+        h = maxH;
+        w = h * ratio;
+      }
+      const x = (PAGE_W - w) / 2;
+      const y = (PAGE_H - h) / 2;
+      doc.addImage(composed, "JPEG", x, y, w, h);
+    } catch {
+      setTextRgb(doc, { r: 255, g: 255, b: 255 });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Failed to load mockup", PAGE_W / 2, PAGE_H / 2, {
+        align: "center",
+      });
+    }
+
+    // Tiny corner labels
+    setTextRgb(doc, { r: 255, g: 255, b: 255 });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(scene.name.toUpperCase(), 24, 18, { charSpace: 3 });
+    doc.text(
+      `0${i + 1} / 0${scenes.length}`,
+      PAGE_W - 24,
+      18,
+      { align: "right", charSpace: 2 }
+    );
+  }
+}
+
 // ── MAIN ─────────────────────────────────────────────────────────────────
 
 export async function buildBrandPDF(
   project: BrandProject,
   logoSvg?: string
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
   const logos = generateLogos(project.brief, project.identity);
   const resolvedLogoSvg =
     logoSvg ?? project.customLogoSvg ?? logos[0]?.svg ?? "";
   const ctx: Ctx = { doc, project, logoSvg: resolvedLogoSvg };
 
-  await renderCover(ctx);
-  renderManifesto(ctx);
-  renderIndex(ctx);
-  renderEssence(ctx);
-  await renderLogoHero(ctx);
-  await renderLogoGrid(ctx);
-  await renderMockupsSection(ctx);
-  renderColorPalette(ctx);
-  renderTypography(ctx);
-  renderTone(ctx);
-  renderBackCover(ctx);
+  await renderMockupsOnly(ctx);
 
   return doc;
 }
