@@ -27,18 +27,18 @@ export default function Home() {
         </div>
 
         {/* Left-aligned content */}
-        <div className="relative z-10 flex-1 flex flex-col items-start justify-center px-6 md:px-16 text-left pb-32 max-w-4xl">
+        <div className="relative z-10 flex-1 flex flex-col items-start justify-center px-6 md:px-12 text-left pb-32">
           <div className="mb-6 text-sm font-bold tracking-[0.3em]">
             <span className="text-white">KINESIN</span>{" "}
             <span style={{ color: "#f767bc" }}>STUDIO</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.0]">
-            <span className="block whitespace-nowrap">
-              <span style={{ color: "#f767bc" }}>Bangun brand</span>{" "}
-              <span className="text-white">yang</span>
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] xl:text-[9.5rem] font-black tracking-tight leading-[0.95]">
+            <span className="block whitespace-nowrap" style={{ color: "#f767bc" }}>
+              Bangun brand
             </span>
             <span className="block whitespace-nowrap">
+              <span className="text-white">yang</span>{" "}
               <span style={{ color: "#f767bc" }}>bergerak</span>{" "}
               <span className="text-white">maju</span>
             </span>
