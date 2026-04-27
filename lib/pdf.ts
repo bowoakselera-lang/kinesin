@@ -3,8 +3,8 @@ import type { BrandProject, MockupOverlayState } from "./types";
 import { generateLogos, svgToPngDataUrl } from "./logo";
 import { generateMockups } from "./mockups";
 
-const A4_W = 595.28;
-const A4_H = 841.89;
+const PAGE_W = 1200;
+const INFO_H = 1700;
 
 function hexToRgb(hex: string) {
   const clean = hex.replace("#", "");
@@ -19,6 +19,11 @@ function hexToRgb(hex: string) {
   };
 }
 
+function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
+  const toHex = (n: number) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function luminance({ r, g, b }: { r: number; g: number; b: number }) {
   const norm = [r, g, b].map((v) => {
     const x = v / 255;
@@ -31,6 +36,22 @@ function readableOn(hex: string): { r: number; g: number; b: number } {
   return luminance(hexToRgb(hex)) > 0.55
     ? { r: 20, g: 20, b: 25 }
     : { r: 255, g: 255, b: 255 };
+}
+
+function mix(hex: string, towards: { r: number; g: number; b: number }, t: number) {
+  const c = hexToRgb(hex);
+  return {
+    r: c.r + (towards.r - c.r) * t,
+    g: c.g + (towards.g - c.g) * t,
+    b: c.b + (towards.b - c.b) * t,
+  };
+}
+
+function lighten(hex: string, amount: number) {
+  return rgbToHex(mix(hex, { r: 255, g: 255, b: 255 }, amount));
+}
+function darken(hex: string, amount: number) {
+  return rgbToHex(mix(hex, { r: 0, g: 0, b: 0 }, amount));
 }
 
 function slugify(s: string) {
@@ -69,6 +90,68 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+async function ensureFontLoaded(family: string, weights: number[] = [400, 700]) {
+  if (typeof document === "undefined" || !document.fonts) return;
+  await Promise.all(
+    weights.map((w) =>
+      document.fonts.load(`${w} 64px '${family}'`).catch(() => undefined)
+    )
+  );
+}
+
+type TextPng = { dataUrl: string; w: number; h: number };
+
+function renderTextPng(opts: {
+  text: string;
+  family: string;
+  weight: number;
+  size: number;
+  color: string;
+  italic?: boolean;
+}): TextPng {
+  const dpr = 2;
+  const fontSpec = `${opts.italic ? "italic " : ""}${opts.weight} ${opts.size}px '${opts.family}', sans-serif`;
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d")!;
+  measureCtx.font = fontSpec;
+  const metrics = measureCtx.measureText(opts.text);
+  const ascent =
+    (metrics as TextMetrics & { actualBoundingBoxAscent?: number }).actualBoundingBoxAscent ??
+    opts.size * 0.8;
+  const descent =
+    (metrics as TextMetrics & { actualBoundingBoxDescent?: number }).actualBoundingBoxDescent ??
+    opts.size * 0.25;
+  const padX = Math.ceil(opts.size * 0.1);
+  const padY = Math.ceil(opts.size * 0.15);
+  const w = Math.ceil(metrics.width) + padX * 2;
+  const h = Math.ceil(ascent + descent) + padY * 2;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d")!;
+  ctx.scale(dpr, dpr);
+  ctx.font = fontSpec;
+  ctx.fillStyle = opts.color;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(opts.text, padX, padY + ascent);
+  return { dataUrl: canvas.toDataURL("image/png"), w, h };
+}
+
+function fillPage(doc: jsPDF, hex: string, w: number, h: number) {
+  const { r, g, b } = hexToRgb(hex);
+  doc.setFillColor(r, g, b);
+  doc.rect(0, 0, w, h, "F");
+}
+
+function setTextRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
+  doc.setTextColor(rgb.r, rgb.g, rgb.b);
+}
+
+function setFillRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
+  doc.setFillColor(rgb.r, rgb.g, rgb.b);
+}
+
 async function composeMockup(
   photoUrl: string,
   overlay: MockupOverlayState,
@@ -105,721 +188,9 @@ async function composeMockup(
   return canvas.toDataURL("image/jpeg", 0.88);
 }
 
-function fillPage(doc: jsPDF, hex: string) {
-  const { r, g, b } = hexToRgb(hex);
-  doc.setFillColor(r, g, b);
-  doc.rect(0, 0, A4_W, A4_H, "F");
-}
+// ── MOCKUP PAGES (variable aspect ratio, full bleed) ─────────────────────
 
-function setTextRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
-  doc.setTextColor(rgb.r, rgb.g, rgb.b);
-}
-
-function setFillRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
-  doc.setFillColor(rgb.r, rgb.g, rgb.b);
-}
-
-// ── PAGES ────────────────────────────────────────────────────────────────
-
-async function renderCover({ doc, project, logoSvg }: Ctx) {
-  const { brief, identity } = project;
-  fillPage(doc, "#0a0a0c");
-
-  // Soft spotlight (concentric fading rings for gradient approximation)
-  const primary = identity.palette[0]?.hex ?? "#4F46E5";
-  const { r, g, b } = hexToRgb(primary);
-  for (let i = 12; i >= 0; i--) {
-    const radius = 40 + i * 22;
-    const alpha = 0.04 + (12 - i) * 0.008;
-    doc.setFillColor(r, g, b);
-    doc.setGState(doc.GState({ opacity: alpha }));
-    doc.circle(A4_W / 2, A4_H / 2 - 40, radius, "F");
-  }
-  doc.setGState(doc.GState({ opacity: 1 }));
-
-  const ink = { r: 255, g: 255, b: 255 };
-
-  // Top bar
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("— BRAND GUIDELINE", 48, 56, { charSpace: 3 });
-  doc.text(
-    String(new Date(project.createdAt).getFullYear()),
-    A4_W - 48,
-    56,
-    { align: "right", charSpace: 3 }
-  );
-  setFillRgb(doc, ink);
-  doc.rect(48, 64, A4_W - 96, 0.4, "F");
-
-  // Logo
-  try {
-    const png = await svgToPngDataUrl(logoSvg, 1000, 1000);
-    const size = 180;
-    doc.addImage(png, "PNG", (A4_W - size) / 2, A4_H / 2 - 130, size, size);
-  } catch {}
-
-  // Brand name caps
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(48);
-  doc.text(brief.brandName.toUpperCase(), A4_W / 2, A4_H / 2 + 100, {
-    align: "center",
-  });
-
-  // Tagline subtitle
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  setTextRgb(doc, { r: 200, g: 200, b: 210 });
-  doc.text(identity.tagline, A4_W / 2, A4_H / 2 + 130, { align: "center" });
-
-  // Bottom bar
-  setFillRgb(doc, ink);
-  doc.rect(48, A4_H - 64, A4_W - 96, 0.4, "F");
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("VISUAL IDENTITY SYSTEM", 48, A4_H - 44, { charSpace: 3 });
-  doc.text(brief.industry.toUpperCase(), A4_W - 48, A4_H - 44, {
-    align: "right",
-    charSpace: 3,
-  });
-}
-
-function renderIndex({ doc, project }: Ctx) {
-  doc.addPage();
-  const dark = project.identity.palette[3]?.hex ?? "#111111";
-  fillPage(doc, dark);
-  const ink = readableOn(dark);
-  setTextRgb(doc, ink);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("INDEX", 48, 72, { charSpace: 3 });
-  doc.text("01 — 05", A4_W - 48, 72, { align: "right", charSpace: 3 });
-
-  setFillRgb(doc, ink);
-  doc.rect(48, 80, A4_W - 96, 0.5, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(64);
-  const title = "VISUAL\nIDENTITY\nSYSTEM";
-  let y = 200;
-  title.split("\n").forEach((line) => {
-    doc.text(line, 48, y);
-    y += 68;
-  });
-
-  const items = [
-    ["01", "Brand Essence"],
-    ["02", "Logo System"],
-    ["03", "Color Palette"],
-    ["04", "Typography"],
-    ["05", "Tone of Voice"],
-  ];
-  y = 520;
-  doc.setFontSize(11);
-  items.forEach(([n, label]) => {
-    doc.setFont("helvetica", "bold");
-    doc.text(n, 48, y, { charSpace: 2 });
-    doc.setFont("helvetica", "normal");
-    doc.text(label, 100, y);
-    setFillRgb(doc, ink);
-    doc.rect(48, y + 8, A4_W - 96, 0.3, "F");
-    y += 32;
-  });
-}
-
-function renderEssence({ doc, project }: Ctx) {
-  doc.addPage();
-  const light = project.identity.palette[4]?.hex ?? "#FAFAF9";
-  fillPage(doc, light);
-  const ink = readableOn(light);
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-  const primaryRgb = hexToRgb(primary);
-
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("01 / ESSENCE", 48, 72, { charSpace: 2 });
-  doc.text(
-    project.brief.brandName.toUpperCase(),
-    A4_W - 48,
-    72,
-    { align: "right", charSpace: 2 }
-  );
-  setFillRgb(doc, ink);
-  doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-  // Huge tagline
-  setTextRgb(doc, primaryRgb);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(48);
-  const tag = doc.splitTextToSize(`"${project.identity.tagline}"`, A4_W - 96);
-  let y = 180;
-  tag.forEach((line: string) => {
-    doc.text(line, 48, y);
-    y += 52;
-  });
-
-  // Essence body
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  const essLines = doc.splitTextToSize(
-    project.identity.essence,
-    A4_W - 96
-  );
-  y += 20;
-  essLines.forEach((line: string) => {
-    doc.text(line, 48, y);
-    y += 18;
-  });
-
-  // 3-col grid for visi/misi/audiens
-  const gridY = A4_H - 280;
-  const colW = (A4_W - 96 - 32) / 3;
-  const cols = [
-    { label: "VISI", value: project.brief.vision },
-    { label: "MISI", value: project.brief.mission },
-    { label: "AUDIENS", value: project.brief.targetAudience },
-  ];
-  cols.forEach((c, i) => {
-    const x = 48 + i * (colW + 16);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setTextRgb(doc, primaryRgb);
-    doc.text(c.label, x, gridY, { charSpace: 2 });
-    setFillRgb(doc, primaryRgb);
-    doc.rect(x, gridY + 6, 30, 1.5, "F");
-    setTextRgb(doc, ink);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    const vLines = doc.splitTextToSize(c.value, colW);
-    vLines.slice(0, 8).forEach((line: string, li: number) => {
-      doc.text(line, x, gridY + 30 + li * 14);
-    });
-  });
-
-  // Personality chips
-  const pY = A4_H - 90;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  setTextRgb(doc, primaryRgb);
-  doc.text("PERSONALITY", 48, pY, { charSpace: 2 });
-  let px = 48;
-  const py = pY + 18;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  project.brief.personality.forEach((trait) => {
-    const w = doc.getTextWidth(trait) + 20;
-    setFillRgb(doc, primaryRgb);
-    doc.roundedRect(px, py - 10, w, 18, 9, 9, "F");
-    setTextRgb(doc, readableOn(primary));
-    doc.text(trait, px + 10, py + 1);
-    px += w + 8;
-  });
-}
-
-async function renderLogoHero({ doc, project, logoSvg }: Ctx) {
-  doc.addPage();
-  fillPage(doc, "#0a0a0c");
-  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
-  const { r, g, b } = hexToRgb(primary);
-
-  // Spotlight rings behind the logo
-  for (let i = 10; i >= 0; i--) {
-    const radius = 60 + i * 28;
-    const alpha = 0.05 + (10 - i) * 0.01;
-    doc.setFillColor(r, g, b);
-    doc.setGState(doc.GState({ opacity: alpha }));
-    doc.circle(A4_W / 2, A4_H / 2, radius, "F");
-  }
-  doc.setGState(doc.GState({ opacity: 1 }));
-
-  const ink = { r: 255, g: 255, b: 255 };
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("— IDENTITY MARK", 48, 72, { charSpace: 3 });
-  doc.text("PRIMARY", A4_W - 48, 72, { align: "right", charSpace: 3 });
-  setFillRgb(doc, ink);
-  doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-  try {
-    const png = await svgToPngDataUrl(logoSvg, 1200, 1200);
-    const size = 300;
-    doc.addImage(png, "PNG", (A4_W - size) / 2, (A4_H - size) / 2 - 30, size, size);
-  } catch {}
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  setTextRgb(doc, { r: 200, g: 200, b: 210 });
-  const rat = doc.splitTextToSize(
-    `Identitas visual ${project.brief.brandName} merefleksikan ${project.brief.personality.join(", ").toLowerCase()}.`,
-    A4_W - 240
-  );
-  let y = A4_H - 130;
-  rat.forEach((line: string) => {
-    doc.text(line, A4_W / 2, y, { align: "center" });
-    y += 14;
-  });
-
-  setFillRgb(doc, ink);
-  doc.rect(48, A4_H - 64, A4_W - 96, 0.4, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  setTextRgb(doc, ink);
-  doc.text("02 / LOGO", 48, A4_H - 44, { charSpace: 3 });
-  doc.text(project.brief.brandName.toUpperCase(), A4_W - 48, A4_H - 44, {
-    align: "right",
-    charSpace: 3,
-  });
-}
-
-async function renderLogoGrid({ doc, project, logoSvg }: Ctx) {
-  doc.addPage();
-  const light = project.identity.palette[4]?.hex ?? "#FAFAF9";
-  fillPage(doc, light);
-  const ink = readableOn(light);
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("02 / LOGO", 48, 72, { charSpace: 2 });
-  doc.text("VARIATIONS", A4_W - 48, 72, {
-    align: "right",
-    charSpace: 2,
-  });
-  setFillRgb(doc, ink);
-  doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-  doc.setFontSize(42);
-  doc.setFont("helvetica", "bold");
-  doc.text("LOGO\nFAMILY", 48, 160);
-
-  // Show same selected logo on 4 different backgrounds (primary / light / dark / accent)
-  const bgs = [
-    { label: "PRIMARY", color: primary },
-    { label: "LIGHT", color: light },
-    { label: "DARK", color: project.identity.palette[3]?.hex ?? "#18181B" },
-    { label: "ACCENT", color: project.identity.palette[2]?.hex ?? primary },
-  ];
-
-  const gap = 14;
-  const cellW = (A4_W - 96 - gap) / 2;
-  const cellH = 210;
-  const startY = 320;
-
-  let png: string | null = null;
-  try {
-    png = await svgToPngDataUrl(logoSvg, 900, 900);
-  } catch {}
-
-  for (let i = 0; i < bgs.length; i++) {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const x = 48 + col * (cellW + gap);
-    const y = startY + row * (cellH + 40);
-    const bgRgb = hexToRgb(bgs[i].color);
-    const bgInk = readableOn(bgs[i].color);
-
-    setFillRgb(doc, bgRgb);
-    doc.rect(x, y, cellW, cellH, "F");
-
-    if (png) {
-      const s = Math.min(cellW, cellH) - 60;
-      doc.addImage(png, "PNG", x + (cellW - s) / 2, y + (cellH - s) / 2, s, s);
-    }
-
-    // Label at corner of cell
-    setTextRgb(doc, bgInk);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(bgs[i].label, x + 12, y + 20, { charSpace: 3 });
-    doc.setFont("helvetica", "normal");
-    doc.text(bgs[i].color.toUpperCase(), x + cellW - 12, y + 20, {
-      align: "right",
-      charSpace: 1,
-    });
-  }
-}
-
-function renderColorPalette({ doc, project }: Ctx) {
-  doc.addPage();
-  const palette = project.identity.palette;
-
-  // Top header strip
-  doc.setFillColor(245, 245, 240);
-  doc.rect(0, 0, A4_W, 110, "F");
-  doc.setTextColor(20, 20, 25);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("03 / COLOR PALETTE", 48, 48, { charSpace: 2 });
-  doc.text(`${palette.length} COLORS`, A4_W - 48, 48, {
-    align: "right",
-    charSpace: 2,
-  });
-  doc.setFontSize(36);
-  doc.text("CHROMATIC\nSYSTEM", 48, 90);
-
-  // Full-bleed horizontal color bars
-  const bandTop = 110;
-  const bandH = (A4_H - bandTop) / palette.length;
-  palette.forEach((c, i) => {
-    const y = bandTop + i * bandH;
-    const { r, g, b } = hexToRgb(c.hex);
-    doc.setFillColor(r, g, b);
-    doc.rect(0, y, A4_W, bandH, "F");
-
-    const ink = readableOn(c.hex);
-    setTextRgb(doc, ink);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    doc.text(c.name.toUpperCase(), 48, y + bandH / 2 - 4);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(c.role, 48, y + bandH / 2 + 16, {
-      maxWidth: A4_W / 2 - 60,
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(c.hex.toUpperCase(), A4_W - 48, y + bandH / 2 - 4, {
-      align: "right",
-    });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`RGB ${r} · ${g} · ${b}`, A4_W - 48, y + bandH / 2 + 16, {
-      align: "right",
-    });
-
-    // index
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(`0${i + 1}`, A4_W - 48, y + 24, {
-      align: "right",
-      charSpace: 2,
-    });
-  });
-}
-
-function renderTypography({ doc, project }: Ctx) {
-  const typo = project.identity.typography;
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-
-  typo.forEach((t, idx) => {
-    doc.addPage();
-    const isDark = idx === 0;
-    const bgHex = isDark ? primary : project.identity.palette[4]?.hex ?? "#FAFAF9";
-    fillPage(doc, bgHex);
-    const ink = readableOn(bgHex);
-    setTextRgb(doc, ink);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("04 / TYPOGRAPHY", 48, 72, { charSpace: 2 });
-    doc.text(
-      t.role === "heading" ? "PRIMARY / HEADING" : "SECONDARY / BODY",
-      A4_W - 48,
-      72,
-      { align: "right", charSpace: 2 }
-    );
-    setFillRgb(doc, ink);
-    doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-    // Giant Aa
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(380);
-    doc.text("Aa", 48, 460);
-
-    // Alphabet row
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "normal");
-    doc.text("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 48, 520);
-    doc.text("abcdefghijklmnopqrstuvwxyz 0123456789", 48, 544);
-
-    // Family name block
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(
-      t.role === "heading" ? "FONT FAMILY — HEADING" : "FONT FAMILY — BODY",
-      48,
-      A4_H - 200,
-      { charSpace: 2 }
-    );
-    doc.setFontSize(48);
-    doc.text(t.fontFamily.toUpperCase(), 48, A4_H - 150);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    const rat = doc.splitTextToSize(t.rationale, A4_W - 96);
-    let y = A4_H - 110;
-    rat.forEach((l: string) => {
-      doc.text(l, 48, y);
-      y += 14;
-    });
-
-    doc.setFontSize(9);
-    doc.text(t.googleFontUrl, 48, A4_H - 48);
-  });
-}
-
-function renderTone({ doc, project }: Ctx) {
-  doc.addPage();
-  const light = project.identity.palette[4]?.hex ?? "#FAFAF9";
-  fillPage(doc, light);
-  const ink = readableOn(light);
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-  const primaryRgb = hexToRgb(primary);
-
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("05 / TONE OF VOICE", 48, 72, { charSpace: 2 });
-  doc.text("DO · DON'T", A4_W - 48, 72, {
-    align: "right",
-    charSpace: 2,
-  });
-  setFillRgb(doc, ink);
-  doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(56);
-  doc.text("HOW WE\nSPEAK", 48, 180);
-
-  const colW = (A4_W - 96 - 24) / 2;
-  const colY = 360;
-
-  // DO column
-  setTextRgb(doc, primaryRgb);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(32);
-  doc.text("DO", 48, colY);
-  setFillRgb(doc, primaryRgb);
-  doc.rect(48, colY + 10, 40, 2.5, "F");
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  let y = colY + 46;
-  project.identity.toneOfVoice.do.forEach((d, i) => {
-    doc.setFont("helvetica", "bold");
-    doc.text(`0${i + 1}`, 48, y, { charSpace: 2 });
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(d, colW - 28);
-    lines.forEach((line: string, li: number) => {
-      doc.text(line, 76, y + li * 14);
-    });
-    y += lines.length * 14 + 16;
-  });
-
-  // DON'T column
-  const x2 = 48 + colW + 24;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(32);
-  doc.setTextColor(180, 40, 40);
-  doc.text("DON'T", x2, colY);
-  doc.setFillColor(180, 40, 40);
-  doc.rect(x2, colY + 10, 40, 2.5, "F");
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  y = colY + 46;
-  project.identity.toneOfVoice.dont.forEach((d, i) => {
-    doc.setFont("helvetica", "bold");
-    doc.text(`0${i + 1}`, x2, y, { charSpace: 2 });
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(d, colW - 28);
-    lines.forEach((line: string, li: number) => {
-      doc.text(line, x2 + 28, y + li * 14);
-    });
-    y += lines.length * 14 + 16;
-  });
-
-  // Footer
-  setFillRgb(doc, ink);
-  doc.rect(48, A4_H - 64, A4_W - 96, 0.4, "F");
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(
-    `${project.brief.brandName.toUpperCase()} · BRAND GUIDELINE`,
-    48,
-    A4_H - 48,
-    { charSpace: 2 }
-  );
-  doc.text("END OF DOCUMENT", A4_W - 48, A4_H - 48, {
-    align: "right",
-    charSpace: 2,
-  });
-}
-
-// ── NEW PAGES ─ Behance case-study style ─────────────────────────────────
-
-function renderManifesto({ doc, project }: Ctx) {
-  doc.addPage();
-  fillPage(doc, "#0a0a0c");
-  const ink = { r: 255, g: 255, b: 255 };
-  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
-  const accentRgb = hexToRgb(primary);
-
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("— MANIFESTO", 48, 72, { charSpace: 3 });
-  doc.text(
-    project.brief.brandName.toUpperCase(),
-    A4_W - 48,
-    72,
-    { align: "right", charSpace: 3 }
-  );
-
-  // Accent dot (bullet)
-  setFillRgb(doc, accentRgb);
-  doc.circle(A4_W / 2, 200, 6, "F");
-
-  // Centered big quote
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(30);
-  setTextRgb(doc, ink);
-  const quoteLines = doc.splitTextToSize(
-    `"${project.identity.tagline}"`,
-    A4_W - 160
-  );
-  let y = 280;
-  quoteLines.forEach((line: string) => {
-    doc.text(line, A4_W / 2, y, { align: "center" });
-    y += 36;
-  });
-
-  // Essence paragraph
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  const essLines = doc.splitTextToSize(
-    project.identity.essence,
-    A4_W - 220
-  );
-  y += 30;
-  essLines.forEach((line: string) => {
-    doc.text(line, A4_W / 2, y, { align: "center" });
-    y += 16;
-  });
-
-  // Bottom divider
-  setFillRgb(doc, ink);
-  doc.rect(A4_W / 2 - 30, A4_H - 90, 60, 0.8, "F");
-  doc.setFontSize(8);
-  doc.text(
-    project.brief.industry.toUpperCase(),
-    A4_W / 2,
-    A4_H - 60,
-    { align: "center", charSpace: 3 }
-  );
-}
-
-async function renderMockupsSection({ doc, project, logoSvg }: Ctx) {
-  const scenes = generateMockups(project.identity);
-
-  for (const scene of scenes) {
-    const overlay = project.mockupOverlays?.[scene.id] ?? {
-      x: scene.overlays[0].x,
-      y: scene.overlays[0].y,
-      w: scene.overlays[0].w,
-      h: scene.overlays[0].h,
-      rotate: scene.overlays[0].rotate ?? 0,
-    };
-
-    doc.addPage();
-    fillPage(doc, "#0a0a0c");
-
-    try {
-      const composed = await composeMockup(scene.photo, overlay, logoSvg);
-      const img = await loadImage(composed);
-      // Fit image inside A4 with margin, maintain aspect ratio
-      const margin = 40;
-      const maxW = A4_W - margin * 2;
-      const maxH = A4_H - 180;
-      const ratio = img.width / img.height;
-      let w = maxW;
-      let h = w / ratio;
-      if (h > maxH) {
-        h = maxH;
-        w = h * ratio;
-      }
-      const x = (A4_W - w) / 2;
-      const yTop = 110;
-      doc.addImage(composed, "JPEG", x, yTop, w, h);
-    } catch {
-      // skip on fetch error
-    }
-
-    // Header
-    setTextRgb(doc, { r: 255, g: 255, b: 255 });
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("— APPLICATIONS", 48, 72, { charSpace: 3 });
-    doc.text(scene.name.toUpperCase(), A4_W - 48, 72, {
-      align: "right",
-      charSpace: 3,
-    });
-    setFillRgb(doc, { r: 255, g: 255, b: 255 });
-    doc.rect(48, 80, A4_W - 96, 0.4, "F");
-
-    // Footer caption
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setTextRgb(doc, { r: 180, g: 180, b: 190 });
-    doc.text(
-      `Brand identity applied on ${scene.name.toLowerCase()}.`,
-      A4_W / 2,
-      A4_H - 60,
-      { align: "center" }
-    );
-  }
-}
-
-function renderBackCover({ doc, project }: Ctx) {
-  doc.addPage();
-  const primary = project.identity.palette[0]?.hex ?? "#111";
-  fillPage(doc, primary);
-  const ink = readableOn(primary);
-
-  setTextRgb(doc, ink);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("— THE END", 48, 72, { charSpace: 3 });
-  doc.text(
-    `${String(new Date(project.createdAt).getFullYear())} © ${project.brief.brandName.toUpperCase()}`,
-    A4_W - 48,
-    72,
-    { align: "right", charSpace: 3 }
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(48);
-  doc.text("Thank you.", A4_W / 2, A4_H / 2 - 20, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  doc.text(project.identity.tagline, A4_W / 2, A4_H / 2 + 20, {
-    align: "center",
-  });
-
-  setFillRgb(doc, ink);
-  doc.rect(48, A4_H - 64, A4_W - 96, 0.5, "F");
-  doc.setFontSize(8);
-  doc.text("BRAND GUIDELINE — END OF DOCUMENT", A4_W / 2, A4_H - 44, {
-    align: "center",
-    charSpace: 3,
-  });
-}
-
-// ── SIMPLIFIED: MOCKUPS ONLY ─────────────────────────────────────────────
-
-async function renderMockupsOnly({ doc, project, logoSvg }: Ctx) {
+async function renderMockups({ doc, project, logoSvg }: Ctx, isFirst: boolean) {
   const scenes = generateMockups(project.identity);
 
   for (let i = 0; i < scenes.length; i++) {
@@ -841,36 +212,442 @@ async function renderMockupsOnly({ doc, project, logoSvg }: Ctx) {
       ratio = img.width / img.height;
     } catch {}
 
-    // Build a page sized to match the mockup's aspect ratio.
-    const PAGE_W = 1200;
-    const PAGE_H = Math.round(PAGE_W / ratio);
-    if (i === 0) {
+    const pageW = 1200;
+    const pageH = Math.round(pageW / ratio);
+    if (isFirst && i === 0) {
       doc.deletePage(1);
-      doc.addPage([PAGE_W, PAGE_H], PAGE_W > PAGE_H ? "landscape" : "portrait");
-    } else {
-      doc.addPage([PAGE_W, PAGE_H], PAGE_W > PAGE_H ? "landscape" : "portrait");
     }
+    doc.addPage([pageW, pageH], pageW > pageH ? "landscape" : "portrait");
 
-    // Background
     doc.setFillColor(10, 10, 12);
-    doc.rect(0, 0, PAGE_W, PAGE_H, "F");
+    doc.rect(0, 0, pageW, pageH, "F");
 
     if (composed) {
-      doc.addImage(composed, "JPEG", 0, 0, PAGE_W, PAGE_H);
+      doc.addImage(composed, "JPEG", 0, 0, pageW, pageH);
     }
 
-    // Tiny corner label (over image)
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.text(scene.name.toUpperCase(), 28, 32, { charSpace: 3 });
     doc.text(
       `0${i + 1} / 0${scenes.length}`,
-      PAGE_W - 28,
+      pageW - 28,
       32,
       { align: "right", charSpace: 2 }
     );
   }
+}
+
+// ── INFO PAGES (1200 × 1700 portrait, screenshot-style) ──────────────────
+
+function pageHeader(
+  doc: jsPDF,
+  inkRgb: { r: number; g: number; b: number },
+  number: string,
+  label: string
+) {
+  setTextRgb(doc, inkRgb);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text(number, 80, 80, { charSpace: 2 });
+  setFillRgb(doc, inkRgb);
+  doc.setGState(doc.GState({ opacity: 0.25 }));
+  doc.rect(120, 76, PAGE_W - 280, 1, "F");
+  doc.setGState(doc.GState({ opacity: 1 }));
+  doc.text(label, PAGE_W - 80, 80, { align: "right", charSpace: 3 });
+}
+
+function renderColorSystem({ doc, project }: Ctx) {
+  doc.addPage([PAGE_W, INFO_H], "portrait");
+  fillPage(doc, "#0a0a0c", PAGE_W, INFO_H);
+  const ink = { r: 240, g: 240, b: 245 };
+
+  pageHeader(doc, ink, "0.0", "COLOR SYSTEM");
+
+  // Lead paragraph (uses generator's palette rationale)
+  setTextRgb(doc, { r: 200, g: 200, b: 210 });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(13);
+  const lead = doc.splitTextToSize(
+    project.identity.rationale ?? project.identity.essence ?? "",
+    PAGE_W - 160
+  );
+  let y = 130;
+  lead.slice(0, 3).forEach((line: string) => {
+    doc.text(line, 80, y);
+    y += 22;
+  });
+
+  // Color cards stack
+  const palette = project.identity.palette;
+  const cardX = 80;
+  const cardW = PAGE_W - 160;
+  const stackTop = 240;
+  const stackBottom = INFO_H - 80;
+  const gap = 18;
+  const cardH = (stackBottom - stackTop - gap * (palette.length - 1)) / palette.length;
+
+  palette.forEach((c, i) => {
+    const cardY = stackTop + i * (cardH + gap);
+    const bg = hexToRgb(c.hex);
+    const ink = readableOn(c.hex);
+
+    // Card background
+    setFillRgb(doc, bg);
+    doc.roundedRect(cardX, cardY, cardW, cardH, 16, 16, "F");
+
+    // Tint strips on the left (4 darker for light cards, lighter for dark cards)
+    const isLight = ink.r === 20;
+    const stripCount = 4;
+    const stripW = 60;
+    const stripGap = 8;
+    const stripsTotalW = stripCount * stripW + (stripCount - 1) * stripGap;
+    const stripsX = cardX + 24;
+    const stripsY = cardY + 20;
+    const stripsH = cardH - 40;
+    for (let s = 0; s < stripCount; s++) {
+      const t = 0.18 + s * 0.16;
+      const stripHex = isLight ? darken(c.hex, t) : lighten(c.hex, t);
+      const stripRgb = hexToRgb(stripHex);
+      setFillRgb(doc, stripRgb);
+      doc.roundedRect(
+        stripsX + s * (stripW + stripGap),
+        stripsY,
+        stripW,
+        stripsH,
+        8,
+        8,
+        "F"
+      );
+      // tint percentage
+      setTextRgb(doc, readableOn(stripHex));
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(
+        `${Math.round((1 - t) * 100)}%`,
+        stripsX + s * (stripW + stripGap) + 8,
+        stripsY + stripsH - 12,
+        { charSpace: 1 }
+      );
+    }
+
+    // Center text block
+    const textX = stripsX + stripsTotalW + 48;
+    setTextRgb(doc, ink);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(34);
+    doc.text(c.name, textX, cardY + cardH / 2 - 4);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    setGStateOpacity(doc, 0.85);
+    const roleLines = doc.splitTextToSize(c.role, cardW - (textX - cardX) - 240);
+    roleLines.slice(0, 2).forEach((line: string, li: number) => {
+      doc.text(line, textX, cardY + cardH / 2 + 22 + li * 16);
+    });
+    setGStateOpacity(doc, 1);
+
+    // Right side: hex + RGB
+    const rightX = cardX + cardW - 24;
+    setTextRgb(doc, ink);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`${bg.r}, ${bg.g}, ${bg.b}`, rightX, cardY + 30, {
+      align: "right",
+      charSpace: 1,
+    });
+    setGStateOpacity(doc, 0.75);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("RGB", rightX, cardY + 46, { align: "right", charSpace: 2 });
+    setGStateOpacity(doc, 1);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(c.hex.toUpperCase(), rightX, cardY + cardH - 24, {
+      align: "right",
+      charSpace: 1,
+    });
+  });
+}
+
+function setGStateOpacity(doc: jsPDF, opacity: number) {
+  doc.setGState(doc.GState({ opacity }));
+}
+
+function drawCheck(
+  doc: jsPDF,
+  cx: number,
+  cy: number,
+  size: number,
+  rgb: { r: number; g: number; b: number }
+) {
+  doc.setDrawColor(rgb.r, rgb.g, rgb.b);
+  doc.setLineWidth(2.4);
+  doc.setLineCap("round");
+  doc.setLineJoin("round");
+  doc.lines(
+    [
+      [size * 0.45, size * 0.5],
+      [size * 0.95, -size * 1.0],
+    ],
+    cx - size * 0.7,
+    cy,
+    [1, 1],
+    "S"
+  );
+}
+
+function drawCross(
+  doc: jsPDF,
+  cx: number,
+  cy: number,
+  size: number,
+  rgb: { r: number; g: number; b: number }
+) {
+  doc.setDrawColor(rgb.r, rgb.g, rgb.b);
+  doc.setLineWidth(2.4);
+  doc.setLineCap("round");
+  doc.line(cx - size, cy - size, cx + size, cy + size);
+  doc.line(cx + size, cy - size, cx - size, cy + size);
+}
+
+async function renderTypographySection({ doc, project }: Ctx) {
+  doc.addPage([PAGE_W, INFO_H], "portrait");
+  fillPage(doc, "#f4f4f6", PAGE_W, INFO_H);
+  const ink = { r: 24, g: 24, b: 30 };
+
+  pageHeader(doc, ink, "0.0", "TYPOGRAPHY");
+
+  const typo = project.identity.typography;
+  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
+  const primaryRgb = hexToRgb(primary);
+
+  const cardX = 80;
+  const cardW = PAGE_W - 160;
+  const cardTop = 180;
+  const cardGap = 36;
+  const cardH = (INFO_H - cardTop - 80 - cardGap * (typo.length - 1)) / typo.length;
+
+  for (let i = 0; i < typo.length; i++) {
+    const t = typo[i];
+    const cardY = cardTop + i * (cardH + cardGap);
+
+    // White rounded card
+    setFillRgb(doc, { r: 255, g: 255, b: 255 });
+    doc.roundedRect(cardX, cardY, cardW, cardH, 28, 28, "F");
+
+    // Index badge
+    const badgeX = cardX + 50;
+    const badgeY = cardY + 50;
+    setFillRgb(doc, primaryRgb);
+    doc.circle(badgeX, badgeY, 22, "F");
+    setTextRgb(doc, readableOn(primary));
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(String(i + 1).padStart(2, "0"), badgeX, badgeY + 4, {
+      align: "center",
+      charSpace: 1,
+    });
+
+    // Make sure the actual font is loaded before rasterising
+    await ensureFontLoaded(t.fontFamily, [300, 400, 500, 700, 900]);
+
+    // Big font name rendered IN the actual font
+    try {
+      const heading = renderTextPng({
+        text: t.fontFamily,
+        family: t.fontFamily,
+        weight: t.role === "heading" ? 700 : 400,
+        size: 130,
+        color: "#141419",
+      });
+      const maxW = cardW * 0.55;
+      let dispW = heading.w;
+      let dispH = heading.h;
+      if (dispW > maxW) {
+        const k = maxW / dispW;
+        dispW = maxW;
+        dispH = heading.h * k;
+      }
+      doc.addImage(heading.dataUrl, "PNG", badgeX + 50, cardY + 60, dispW, dispH);
+
+      if (t.role === "body") {
+        // tiny "Family" label after the name
+        const family = renderTextPng({
+          text: "Family",
+          family: t.fontFamily,
+          weight: 300,
+          size: 60,
+          color: "#9aa0a6",
+          italic: true,
+        });
+        const k = (dispH * 0.5) / family.h;
+        doc.addImage(
+          family.dataUrl,
+          "PNG",
+          badgeX + 50 + dispW + 12,
+          cardY + 60 + dispH * 0.45,
+          family.w * k,
+          family.h * k
+        );
+      }
+    } catch {
+      // Fallback to native font
+      setTextRgb(doc, ink);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(64);
+      doc.text(t.fontFamily, badgeX + 50, cardY + 130);
+    }
+
+    // Rationale + google fonts link
+    setTextRgb(doc, { r: 90, g: 90, b: 110 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const rationale = doc.splitTextToSize(t.rationale, cardW * 0.5);
+    let ry = cardY + cardH - 110;
+    rationale.slice(0, 2).forEach((line: string) => {
+      doc.text(line, badgeX + 50, ry);
+      ry += 14;
+    });
+    setTextRgb(doc, primaryRgb);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Google Fonts →", badgeX + 50, ry + 14, { charSpace: 1 });
+
+    // Right side: alphabet sample in the actual font
+    try {
+      const sampleLines = [
+        "abcdefghijklmnopqrstuvwxyz",
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "0123456789!@#$%&?",
+      ];
+      const lineH = 38;
+      let sy = cardY + 70;
+      for (const line of sampleLines) {
+        const png = renderTextPng({
+          text: line,
+          family: t.fontFamily,
+          weight: t.role === "heading" ? 400 : 400,
+          size: 26,
+          color: "#3a3a44",
+        });
+        const maxW = cardW * 0.4;
+        let w = png.w;
+        let h = png.h;
+        if (w > maxW) {
+          const k = maxW / w;
+          w = maxW;
+          h = png.h * k;
+        }
+        doc.addImage(png.dataUrl, "PNG", cardX + cardW * 0.55, sy, w, h);
+        sy += lineH;
+      }
+
+      // Weight scale row (only for body)
+      if (t.role === "body") {
+        const weights: Array<{ label: string; w: number }> = [
+          { label: "Light", w: 300 },
+          { label: "Regular", w: 400 },
+          { label: "Medium", w: 500 },
+          { label: "Bold", w: 700 },
+          { label: "Black", w: 900 },
+        ];
+        const rowY = cardY + cardH - 70;
+        const rowX = cardX + cardW * 0.55;
+        const rowW = cardW * 0.4 - 20;
+        const stepX = rowW / (weights.length - 1);
+        // Connector line
+        setFillRgb(doc, { r: 210, g: 210, b: 220 });
+        doc.rect(rowX + 6, rowY + 8, rowW - 12, 1, "F");
+        weights.forEach((w, wi) => {
+          const cx = rowX + wi * stepX;
+          const isActive = wi === 1;
+          setFillRgb(doc, isActive ? primaryRgb : { r: 210, g: 210, b: 220 });
+          doc.circle(cx, rowY + 8, 4, "F");
+          setTextRgb(doc, isActive ? { r: 24, g: 24, b: 30 } : { r: 140, g: 140, b: 150 });
+          doc.setFont("helvetica", isActive ? "bold" : "normal");
+          doc.setFontSize(9);
+          doc.text(w.label, cx, rowY + 30, { align: "center" });
+        });
+      }
+    } catch {}
+  }
+}
+
+function renderToneOfVoice({ doc, project }: Ctx) {
+  doc.addPage([PAGE_W, INFO_H], "portrait");
+  fillPage(doc, "#f4f4f6", PAGE_W, INFO_H);
+  const ink = { r: 24, g: 24, b: 30 };
+
+  pageHeader(doc, ink, "0.0", "TONE OF VOICE");
+
+  const primary = project.identity.palette[0]?.hex ?? "#4F46E5";
+  const primaryRgb = hexToRgb(primary);
+  const dont = { r: 220, g: 70, b: 90 };
+
+  const cardX = 80;
+  const cardW = (PAGE_W - 160 - 32) / 2;
+  const cardY = 200;
+  const cardH = INFO_H - cardY - 100;
+
+  // ── DO card (light) ────────────────────────────────────
+  setFillRgb(doc, { r: 255, g: 255, b: 255 });
+  doc.roundedRect(cardX, cardY, cardW, cardH, 28, 28, "F");
+
+  // checkmark badge
+  setFillRgb(doc, primaryRgb);
+  doc.circle(cardX + 56, cardY + 60, 20, "F");
+  drawCheck(doc, cardX + 56, cardY + 60, 11, readableOn(primary));
+
+  setTextRgb(doc, ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.text("Do", cardX + 92, cardY + 70);
+
+  // bullet list
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  setTextRgb(doc, { r: 60, g: 60, b: 70 });
+  let y = cardY + 130;
+  project.identity.toneOfVoice.do.forEach((item) => {
+    setFillRgb(doc, primaryRgb);
+    doc.circle(cardX + 40, y - 4, 3, "F");
+    const lines = doc.splitTextToSize(item, cardW - 80);
+    lines.forEach((l: string, li: number) => {
+      doc.text(l, cardX + 56, y + li * 16);
+    });
+    y += lines.length * 16 + 14;
+  });
+
+  // ── DON'T card (dark) ──────────────────────────────────
+  const x2 = cardX + cardW + 32;
+  setFillRgb(doc, { r: 14, g: 14, b: 18 });
+  doc.roundedRect(x2, cardY, cardW, cardH, 28, 28, "F");
+
+  setFillRgb(doc, dont);
+  doc.circle(x2 + 56, cardY + 60, 20, "F");
+  drawCross(doc, x2 + 56, cardY + 60, 9, { r: 255, g: 255, b: 255 });
+
+  setTextRgb(doc, { r: 245, g: 245, b: 250 });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.text("Don't", x2 + 92, cardY + 70);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  setTextRgb(doc, { r: 200, g: 200, b: 210 });
+  y = cardY + 130;
+  project.identity.toneOfVoice.dont.forEach((item) => {
+    setFillRgb(doc, dont);
+    doc.circle(x2 + 40, y - 4, 3, "F");
+    const lines = doc.splitTextToSize(item, cardW - 80);
+    lines.forEach((l: string, li: number) => {
+      doc.text(l, x2 + 56, y + li * 16);
+    });
+    y += lines.length * 16 + 14;
+  });
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────────────
@@ -879,13 +656,16 @@ export async function buildBrandPDF(
   project: BrandProject,
   logoSvg?: string
 ): Promise<jsPDF> {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: [PAGE_W, INFO_H] });
   const logos = generateLogos(project.brief, project.identity);
   const resolvedLogoSvg =
     logoSvg ?? project.customLogoSvg ?? logos[0]?.svg ?? "";
   const ctx: Ctx = { doc, project, logoSvg: resolvedLogoSvg };
 
-  await renderMockupsOnly(ctx);
+  await renderMockups(ctx, true);
+  try { renderColorSystem(ctx); } catch (e) { console.error("[pdf] renderColorSystem failed:", e); }
+  try { await renderTypographySection(ctx); } catch (e) { console.error("[pdf] renderTypographySection failed:", e); }
+  try { renderToneOfVoice(ctx); } catch (e) { console.error("[pdf] renderToneOfVoice failed:", e); }
 
   return doc;
 }
