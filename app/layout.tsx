@@ -26,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${oswald.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+    <html lang="id" className={`${inter.variable} ${oswald.variable} relative antialiased`}>
+      <body className="relative min-h-screen flex flex-col bg-slate-50 text-slate-900">
         <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-white/5">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
