@@ -141,54 +141,229 @@ const AUDIENCE_SAT: Record<string, number> = {
   "segmen mass market":                   1.1,
 };
 
-// ── FONT PAIRS ───────────────────────────────────────────────────────────
+// ── FONT PAIRINGS ────────────────────────────────────────────────────────
+// Curated pairings inspired by fontjoy.com + popular Google Fonts combos.
+// Each pairing is a heading + body that has been visually tested together.
 
-type FontEntry = {
-  family: string;
-  url: string;
-  tags: string[]; // which traits this font suits
-  headRationale: string;
+type FontPairing = {
+  heading: string;
+  body: string;
+  tags: string[];
+  headingRationale: string;
   bodyRationale: string;
 };
 
-const HEADING_FONTS: FontEntry[] = [
-  { family: "Inter",              url: "https://fonts.google.com/specimen/Inter",              tags: ["profesional", "modern", "minimalis", "terpercaya"],  headRationale: "Sans-serif modern yang bersih dan sangat readable.",           bodyRationale: "Font body netral yang sangat legible." },
-  { family: "Poppins",            url: "https://fonts.google.com/specimen/Poppins",            tags: ["ramah", "playful", "modern"],                        headRationale: "Geometric sans-serif yang ramah dan approachable.",            bodyRationale: "Body friendly dengan bentuk geometrik bulat." },
-  { family: "Space Grotesk",      url: "https://fonts.google.com/specimen/Space+Grotesk",      tags: ["modern", "inovatif", "berani"],                      headRationale: "Sans-serif modern dengan karakter distinctif.",                bodyRationale: "Body font kontemporer yang unik." },
-  { family: "Playfair Display",   url: "https://fonts.google.com/specimen/Playfair+Display",   tags: ["elegan", "mewah", "tradisional"],                    headRationale: "Serif dengan kontras tinggi yang elegan dan sophisticated.",   bodyRationale: "Serif premium untuk teks editorial." },
-  { family: "Fredoka",            url: "https://fonts.google.com/specimen/Fredoka",            tags: ["playful", "ramah"],                                  headRationale: "Bentuk rounded yang playful dan memorable.",                   bodyRationale: "Body ceria dengan karakter bulat." },
-  { family: "Archivo Black",      url: "https://fonts.google.com/specimen/Archivo+Black",      tags: ["berani"],                                            headRationale: "Bold dan impactful — langsung mencuri perhatian.",             bodyRationale: "Font tebal untuk statement kuat." },
-  { family: "DM Sans",            url: "https://fonts.google.com/specimen/DM+Sans",            tags: ["minimalis", "profesional", "modern"],                headRationale: "Sans-serif bersih yang minimal tanpa ornamen.",                bodyRationale: "Body clean dan efisien." },
-  { family: "Merriweather",       url: "https://fonts.google.com/specimen/Merriweather",       tags: ["hangat", "tradisional", "terpercaya"],               headRationale: "Serif yang hangat dan membumi, cocok untuk narasi.",           bodyRationale: "Serif nyaman untuk membaca panjang." },
-  { family: "Sora",               url: "https://fonts.google.com/specimen/Sora",               tags: ["inovatif", "modern", "berani"],                      headRationale: "Sans-serif futuristik dengan karakter geometrik fresh.",       bodyRationale: "Body font futuristik yang bersih." },
-  { family: "Cormorant Garamond", url: "https://fonts.google.com/specimen/Cormorant+Garamond", tags: ["tradisional", "elegan", "mewah"],                    headRationale: "Serif klasik bergaya literary dan timeless.",                  bodyRationale: "Serif klasik untuk teks premium." },
-  { family: "IBM Plex Sans",      url: "https://fonts.google.com/specimen/IBM+Plex+Sans",      tags: ["terpercaya", "profesional"],                         headRationale: "Sans-serif institusional yang menegaskan kredibilitas.",       bodyRationale: "Body font yang solid dan trustworthy." },
-  { family: "Outfit",             url: "https://fonts.google.com/specimen/Outfit",             tags: ["modern", "ramah", "inovatif"],                       headRationale: "Geometric sans-serif yang clean dan kontemporer.",             bodyRationale: "Body geometric yang ramah dibaca." },
-  { family: "Crimson Pro",        url: "https://fonts.google.com/specimen/Crimson+Pro",        tags: ["elegan", "hangat", "tradisional"],                   headRationale: "Serif elegan dengan presisi modern.",                          bodyRationale: "Serif nyaman untuk konten editorial." },
-  { family: "Unbounded",          url: "https://fonts.google.com/specimen/Unbounded",          tags: ["berani", "playful", "inovatif"],                     headRationale: "Sans-serif ultra-bold yang tidak biasa dan berani.",           bodyRationale: "Body tebal untuk brand yang mencolok." },
+const gFontUrl = (family: string) =>
+  `https://fonts.google.com/specimen/${family.replace(/ /g, "+")}`;
+
+const FONT_PAIRINGS: FontPairing[] = [
+  // ── ELEGANT / EDITORIAL / LUXURY ──────────────────────────────────
+  {
+    heading: "Playfair Display", body: "DM Sans",
+    tags: ["elegan", "mewah", "modern"],
+    headingRationale: "Serif kontras tinggi yang sophisticated dan editorial.",
+    bodyRationale: "Sans-serif clean yang menyeimbangkan heading dramatis.",
+  },
+  {
+    heading: "Cormorant Garamond", body: "Source Sans 3",
+    tags: ["elegan", "mewah", "tradisional"],
+    headingRationale: "Serif klasik bergaya literary, timeless dan premium.",
+    bodyRationale: "Sans netral yang nyaman untuk paragraf panjang.",
+  },
+  {
+    heading: "Libre Baskerville", body: "Inter",
+    tags: ["mewah", "elegan", "tradisional"],
+    headingRationale: "Serif premium dengan presisi klasik.",
+    bodyRationale: "Sans modern untuk readability di layar.",
+  },
+  {
+    heading: "EB Garamond", body: "Lato",
+    tags: ["tradisional", "mewah", "elegan"],
+    headingRationale: "Serif Garamond klasik untuk kesan literary.",
+    bodyRationale: "Sans humanis yang seimbang dan elegan.",
+  },
+  {
+    heading: "Crimson Pro", body: "Inter",
+    tags: ["elegan", "hangat", "tradisional"],
+    headingRationale: "Serif elegan dengan presisi modern.",
+    bodyRationale: "Sans modern untuk konten kontemporer.",
+  },
+  {
+    heading: "Lora", body: "Inter",
+    tags: ["elegan", "hangat", "modern"],
+    headingRationale: "Serif kontemporer dengan kalligrafis subtle.",
+    bodyRationale: "Sans modern untuk kontras yang seimbang.",
+  },
+
+  // ── MODERN / TECH / MINIMALIS ────────────────────────────────────
+  {
+    heading: "Space Grotesk", body: "IBM Plex Sans",
+    tags: ["modern", "inovatif", "profesional"],
+    headingRationale: "Sans-serif modern dengan karakter distinctif.",
+    bodyRationale: "Sans institusional yang trustworthy dan precise.",
+  },
+  {
+    heading: "Inter", body: "Inter",
+    tags: ["minimalis", "profesional", "modern"],
+    headingRationale: "Sans-serif modern, super readable di semua ukuran.",
+    bodyRationale: "Konsisten heading-body untuk minimal aesthetic.",
+  },
+  {
+    heading: "Outfit", body: "Inter",
+    tags: ["modern", "minimalis", "ramah"],
+    headingRationale: "Geometric sans yang clean dan kontemporer.",
+    bodyRationale: "Sans modern yang sangat legible.",
+  },
+  {
+    heading: "Sora", body: "Inter",
+    tags: ["inovatif", "modern", "profesional"],
+    headingRationale: "Sans-serif futuristik dengan karakter geometric fresh.",
+    bodyRationale: "Sans clean untuk membaca panjang.",
+  },
+  {
+    heading: "DM Sans", body: "DM Sans",
+    tags: ["minimalis", "profesional", "modern"],
+    headingRationale: "Sans-serif bersih tanpa ornamen.",
+    bodyRationale: "Konsisten dan efisien untuk tampilan clean.",
+  },
+  {
+    heading: "Manrope", body: "Manrope",
+    tags: ["modern", "profesional", "minimalis"],
+    headingRationale: "Sans-serif modern yang well-balanced.",
+    bodyRationale: "Body yang seragam dan harmonis dengan heading.",
+  },
+  {
+    heading: "IBM Plex Sans", body: "IBM Plex Mono",
+    tags: ["terpercaya", "profesional", "inovatif"],
+    headingRationale: "Sans institusional yang menegaskan kredibilitas.",
+    bodyRationale: "Mono untuk aksen teknis dan precise.",
+  },
+
+  // ── BOLD / IMPACT ────────────────────────────────────────────────
+  {
+    heading: "Archivo Black", body: "Archivo",
+    tags: ["berani", "modern"],
+    headingRationale: "Bold dan impactful — langsung mencuri perhatian.",
+    bodyRationale: "Sans-serif netral yang menyeimbangkan heading tebal.",
+  },
+  {
+    heading: "Unbounded", body: "Work Sans",
+    tags: ["berani", "playful", "inovatif"],
+    headingRationale: "Sans ultra-bold yang tidak biasa dan berani.",
+    bodyRationale: "Sans geometric yang versatile.",
+  },
+  {
+    heading: "Bebas Neue", body: "Source Sans 3",
+    tags: ["berani", "modern"],
+    headingRationale: "Display compact untuk headline yang strong.",
+    bodyRationale: "Sans netral untuk teks pendukung.",
+  },
+  {
+    heading: "Anton", body: "Inter",
+    tags: ["berani", "modern"],
+    headingRationale: "Display extra-condensed yang dramatis.",
+    bodyRationale: "Sans modern yang legible untuk body.",
+  },
+  {
+    heading: "Bricolage Grotesque", body: "Inter",
+    tags: ["modern", "berani", "playful"],
+    headingRationale: "Display grotesque yang playful dan modern.",
+    bodyRationale: "Sans clean untuk seimbangkan karakter heading.",
+  },
+
+  // ── FRIENDLY / PLAYFUL ───────────────────────────────────────────
+  {
+    heading: "Poppins", body: "Open Sans",
+    tags: ["ramah", "playful", "modern"],
+    headingRationale: "Geometric sans yang ramah dan approachable.",
+    bodyRationale: "Sans humanis yang ramah dibaca.",
+  },
+  {
+    heading: "Fredoka", body: "Nunito",
+    tags: ["playful", "ramah", "hangat"],
+    headingRationale: "Bentuk rounded yang playful dan memorable.",
+    bodyRationale: "Sans bulat yang hangat dan friendly.",
+  },
+  {
+    heading: "Quicksand", body: "Open Sans",
+    tags: ["ramah", "modern", "minimalis"],
+    headingRationale: "Sans-serif rounded yang fresh dan light.",
+    bodyRationale: "Sans humanis yang neutral dan readable.",
+  },
+  {
+    heading: "Rubik", body: "Rubik",
+    tags: ["ramah", "modern", "playful"],
+    headingRationale: "Sans-serif slightly rounded yang friendly.",
+    bodyRationale: "Konsisten untuk tone yang playful tapi clean.",
+  },
+  {
+    heading: "Nunito", body: "Open Sans",
+    tags: ["ramah", "hangat", "playful"],
+    headingRationale: "Sans bulat yang sangat ramah dan approachable.",
+    bodyRationale: "Sans humanis yang netral dan hangat.",
+  },
+
+  // ── WARM / EDITORIAL / TRUSTWORTHY ───────────────────────────────
+  {
+    heading: "Merriweather", body: "Open Sans",
+    tags: ["hangat", "tradisional", "terpercaya"],
+    headingRationale: "Serif hangat yang membumi, cocok untuk narasi.",
+    bodyRationale: "Sans humanis yang nyaman untuk teks panjang.",
+  },
+  {
+    heading: "Bitter", body: "Source Sans 3",
+    tags: ["hangat", "terpercaya", "tradisional"],
+    headingRationale: "Slab serif yang strong dan grounded.",
+    bodyRationale: "Sans neutral yang menyeimbangkan slab serif.",
+  },
+
+  // ── DISTINCTIVE / CREATIVE ───────────────────────────────────────
+  {
+    heading: "Syne", body: "Inter",
+    tags: ["inovatif", "berani", "modern"],
+    headingRationale: "Display geometric experimental untuk brand creative.",
+    bodyRationale: "Sans clean untuk kontras yang functional.",
+  },
+  {
+    heading: "Bricolage Grotesque", body: "DM Sans",
+    tags: ["modern", "playful", "inovatif"],
+    headingRationale: "Display grotesque dengan karakter unik.",
+    bodyRationale: "Sans clean yang seimbangkan ekspresif heading.",
+  },
+  {
+    heading: "Karla", body: "Karla",
+    tags: ["modern", "ramah", "minimalis"],
+    headingRationale: "Sans grotesque yang friendly dan distinctive.",
+    bodyRationale: "Konsisten untuk feel modern dan cohesive.",
+  },
+  {
+    heading: "Big Shoulders Display", body: "Inter",
+    tags: ["berani", "inovatif", "modern"],
+    headingRationale: "Condensed display untuk statement editorial yang kuat.",
+    bodyRationale: "Sans modern untuk kontras yang seimbang.",
+  },
+
+  // ── INSTITUTIONAL / VERSATILE ────────────────────────────────────
+  {
+    heading: "Roboto", body: "Roboto",
+    tags: ["profesional", "modern", "terpercaya"],
+    headingRationale: "Sans-serif neutral yang versatile untuk semua context.",
+    bodyRationale: "Konsisten heading-body untuk tampilan profesional.",
+  },
+  {
+    heading: "Work Sans", body: "Work Sans",
+    tags: ["modern", "minimalis", "profesional"],
+    headingRationale: "Sans geometric yang versatile dan bersih.",
+    bodyRationale: "Konsisten untuk tampilan minimal dan modern.",
+  },
 ];
 
-const BODY_FONTS: FontEntry[] = [
-  { family: "Source Sans 3", url: "https://fonts.google.com/specimen/Source+Sans+3", tags: ["profesional", "terpercaya"],           headRationale: "", bodyRationale: "Font body netral dan nyaman untuk paragraf panjang." },
-  { family: "Nunito",        url: "https://fonts.google.com/specimen/Nunito",        tags: ["ramah", "playful", "hangat"],          headRationale: "", bodyRationale: "Bentuk bulat yang hangat dan friendly." },
-  { family: "Inter",         url: "https://fonts.google.com/specimen/Inter",         tags: ["modern", "minimalis", "inovatif"],     headRationale: "", bodyRationale: "Body font modern yang sangat legible di layar." },
-  { family: "Lora",          url: "https://fonts.google.com/specimen/Lora",          tags: ["elegan", "hangat", "tradisional"],     headRationale: "", bodyRationale: "Serif hangat yang nyaman untuk teks panjang." },
-  { family: "Archivo",       url: "https://fonts.google.com/specimen/Archivo",       tags: ["berani", "modern"],                   headRationale: "", bodyRationale: "Sans-serif netral yang menyeimbangkan heading tebal." },
-  { family: "DM Sans",       url: "https://fonts.google.com/specimen/DM+Sans",       tags: ["minimalis", "profesional"],            headRationale: "", bodyRationale: "Konsisten untuk tampilan yang sangat clean." },
-  { family: "Open Sans",     url: "https://fonts.google.com/specimen/Open+Sans",     tags: ["hangat", "ramah", "terpercaya"],       headRationale: "", bodyRationale: "Sans-serif netral yang ramah dibaca." },
-  { family: "EB Garamond",   url: "https://fonts.google.com/specimen/EB+Garamond",   tags: ["tradisional", "mewah", "elegan"],      headRationale: "", bodyRationale: "Serif tradisional untuk teks nyaman dan premium." },
-  { family: "Libre Baskerville", url: "https://fonts.google.com/specimen/Libre+Baskerville", tags: ["mewah", "elegan"],             headRationale: "", bodyRationale: "Serif klasik premium untuk teks pendukung." },
-  { family: "IBM Plex Sans", url: "https://fonts.google.com/specimen/IBM+Plex+Sans", tags: ["terpercaya", "profesional", "inovatif"], headRationale: "", bodyRationale: "Body konsisten untuk komunikasi solid." },
-  { family: "Work Sans",     url: "https://fonts.google.com/specimen/Work+Sans",     tags: ["modern", "minimalis", "profesional"],  headRationale: "", bodyRationale: "Sans-serif geometric yang versatile dan bersih." },
-];
-
-// Score a font against traits
-function scoreFont(font: FontEntry, traits: string[]): number {
+// Score a pairing against brand traits — higher score for earlier-listed traits
+function scorePairing(pair: FontPairing, traits: string[]): number {
   let score = 0;
-  const lowerTraits = traits.map((t) => t.toLowerCase());
-  for (const tag of font.tags) {
-    const idx = lowerTraits.indexOf(tag);
-    if (idx >= 0) score += 3 - idx; // higher weight for earlier traits
+  for (const tag of pair.tags) {
+    const idx = traits.indexOf(tag);
+    if (idx >= 0) score += 3 - Math.min(idx, 2); // 3 for first trait, 2, 1, 1, ...
   }
   return score;
 }
@@ -330,37 +505,28 @@ export function generateBrandIdentity(brief: BrandBrief): BrandIdentity {
     ? `${PALETTES[matchedKeys[0]].name} × ${PALETTES[matchedKeys[1]].name}`
     : PALETTES[matchedKeys[0]].name;
 
-  // ── 5. PICK FONTS via scoring ─────────────────────────────────────────
-  const headingCandidates = [...HEADING_FONTS]
-    .map((f) => ({ font: f, score: scoreFont(f, lowerTraits) }))
+  // ── 5. PICK FONT PAIRING via scoring (curated fontjoy-inspired pairs) ─
+  const pairCandidates = FONT_PAIRINGS
+    .map((p) => ({ pair: p, score: scorePairing(p, lowerTraits) }))
     .sort((a, b) => b.score - a.score);
 
-  // Top N candidates, pick one based on seed
-  const topHeadings = headingCandidates.filter((c) => c.score > 0).slice(0, 4);
-  if (topHeadings.length === 0) topHeadings.push(headingCandidates[0]);
-  const pickedHeading = topHeadings[Math.floor(rng() * topHeadings.length)].font;
-
-  // Body font: exclude heading, score, pick
-  const bodyCandidates = BODY_FONTS
-    .filter((f) => f.family !== pickedHeading.family)
-    .map((f) => ({ font: f, score: scoreFont(f, lowerTraits) }))
-    .sort((a, b) => b.score - a.score);
-  const topBodies = bodyCandidates.filter((c) => c.score > 0).slice(0, 3);
-  if (topBodies.length === 0) topBodies.push(bodyCandidates[0]);
-  const pickedBody = topBodies[Math.floor(rng() * topBodies.length)].font;
+  // Top N pairings, pick one based on seed for variety
+  const topPairs = pairCandidates.filter((c) => c.score > 0).slice(0, 5);
+  if (topPairs.length === 0) topPairs.push(pairCandidates[0]);
+  const pickedPair = topPairs[Math.floor(rng() * topPairs.length)].pair;
 
   const typography: TypographyItem[] = [
     {
       role: "heading",
-      fontFamily: pickedHeading.family,
-      googleFontUrl: pickedHeading.url,
-      rationale: pickedHeading.headRationale,
+      fontFamily: pickedPair.heading,
+      googleFontUrl: gFontUrl(pickedPair.heading),
+      rationale: pickedPair.headingRationale,
     },
     {
       role: "body",
-      fontFamily: pickedBody.family,
-      googleFontUrl: pickedBody.url,
-      rationale: pickedBody.bodyRationale,
+      fontFamily: pickedPair.body,
+      googleFontUrl: gFontUrl(pickedPair.body),
+      rationale: pickedPair.bodyRationale,
     },
   ];
 
