@@ -152,7 +152,7 @@ export default function ProjectDetailPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* HERO                                                                */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[80vh] flex items-center overflow-hidden" style={{ backgroundColor: primary }}>
+      <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-black">
         <video
           src="/bg%20animasi%20laman%202.mp4"
           autoPlay
@@ -162,26 +162,25 @@ export default function ProjectDetailPage() {
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: primary, opacity: 0.55 }} />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute bottom-0 left-0 w-full h-32" style={{ background: `linear-gradient(to top, ${dark}66, transparent)` }} />
+          <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black via-black/70 to-transparent" />
         </div>
-        <div className="relative max-w-6xl mx-auto px-8 w-full py-32">
-          <Link href="/projects" className="text-sm opacity-60 hover:opacity-100 transition mb-6 inline-block" style={{ color: primaryInk }}>
+        <div className="relative max-w-6xl mx-auto px-8 w-full py-32 text-white">
+          <Link href="/projects" className="text-sm text-white/60 hover:text-white transition mb-6 inline-block">
             ← Semua Proyek
           </Link>
-          <p className="text-xs font-bold tracking-[0.3em] uppercase mb-4 opacity-50" style={{ color: primaryInk }}>
+          <p className="text-xs font-bold tracking-[0.3em] uppercase mb-4 text-white/50">
             Brand Identity
           </p>
-          <h1 className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tight leading-[0.9] mb-6" style={{ color: primaryInk }}>
+          <h1 className="text-6xl sm:text-7xl md:text-9xl font-black tracking-tight leading-[0.9] mb-6">
             {brief.brandName}
           </h1>
-          <p className="text-xl md:text-2xl max-w-xl opacity-80 leading-relaxed" style={{ color: primaryInk }}>
+          <p className="text-xl md:text-2xl max-w-xl text-white/80 leading-relaxed">
             {identity.tagline}
           </p>
           <div className="flex flex-wrap gap-2 mt-8">
             {brief.personality.map((p) => (
-              <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border" style={{ borderColor: `${primaryInk}33`, color: primaryInk }}>
+              <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border border-white/30 text-white/90">
                 {p}
               </span>
             ))}
