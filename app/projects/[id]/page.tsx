@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getProject, saveProject } from "@/lib/storage";
@@ -151,10 +152,19 @@ export default function ProjectDetailPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* HERO                                                                */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[80vh] flex items-center" style={{ backgroundColor: primary }}>
+      <section className="relative min-h-[80vh] flex items-center overflow-hidden" style={{ backgroundColor: primary }}>
+        <video
+          src="/bg%20animasi%20laman%202.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: primary, opacity: 0.55 }} />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20" style={{ backgroundColor: light }} />
-          <div className="absolute bottom-0 left-0 w-full h-32" style={{ background: `linear-gradient(to top, ${dark}22, transparent)` }} />
+          <div className="absolute bottom-0 left-0 w-full h-32" style={{ background: `linear-gradient(to top, ${dark}66, transparent)` }} />
         </div>
         <div className="relative max-w-6xl mx-auto px-8 w-full py-32">
           <Link href="/projects" className="text-sm opacity-60 hover:opacity-100 transition mb-6 inline-block" style={{ color: primaryInk }}>
@@ -204,9 +214,43 @@ export default function ProjectDetailPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* LOGO SHOWCASE                                                       */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <section style={{ backgroundColor: dark }}>
+      <section className="relative overflow-hidden bg-black">
+        {/* Drifting indigo + pink blobs (same as landing Manifesto) */}
+        <div className="absolute inset-0 pointer-events-none opacity-50">
+          <motion.div
+            className="absolute -left-40 top-1/4 w-[600px] h-[600px] rounded-full blur-2xl"
+            style={{ backgroundColor: "#4F46E5" }}
+            animate={{
+              x: [0, 280, -120, 200, 0],
+              y: [0, -180, 220, -100, 0],
+              scale: [1, 1.25, 0.85, 1.15, 1],
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute -right-40 bottom-0 w-[500px] h-[500px] rounded-full blur-2xl"
+            style={{ backgroundColor: "#f767bc" }}
+            animate={{
+              x: [0, -250, 180, -140, 0],
+              y: [0, 150, -200, 120, 0],
+              scale: [1, 0.85, 1.3, 0.95, 1],
+            }}
+            transition={{
+              duration: 14,
+              repeat: Infinity,
+              repeatType: "loop",
+              ease: "easeInOut",
+            }}
+          />
+        </div>
+
         {/* Hero logo display */}
-        <div className="max-w-6xl mx-auto px-8 py-24">
+        <div className="relative max-w-6xl mx-auto px-8 py-24">
           <SectionLabel num="02" label="Logo System" light />
           <div className="mt-12 flex flex-col items-center">
             <div
@@ -391,7 +435,7 @@ export default function ProjectDetailPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* COLOR PALETTE                                                       */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <section className="py-24" style={{ backgroundColor: dark }}>
+      <section className="py-24 bg-black">
         <div className="max-w-6xl mx-auto px-8">
           <SectionLabel num="04" label="Color System" light />
           <p className="text-slate-400 text-sm mt-4 max-w-2xl">{identity.rationale}</p>
@@ -416,7 +460,6 @@ export default function ProjectDetailPage() {
                 index={idx + 1}
                 font={t}
                 accentColor={primary}
-                showWeights={t.role === "body"}
               />
             ))}
           </div>
@@ -670,7 +713,7 @@ function MockupCanvas({
         onPointerDown={(e) => beginDrag(e, "move")}
       >
         <div
-          className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full"
+          className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
           style={{
             mixBlendMode: base.blendMode ?? "normal",
             opacity: base.opacity ?? 1,
@@ -806,17 +849,25 @@ function ColorBand({ color, reverse }: { color: { name: string; hex: string; rol
   );
 }
 
-function TypographyRow({ index, font, accentColor, showWeights }: { index: number; font: { role: "heading" | "body"; fontFamily: string; googleFontUrl: string; rationale: string }; accentColor: string; showWeights: boolean }) {
+function TypographyRow({ index, font, accentColor }: { index: number; font: { role: "heading" | "body"; fontFamily: string; googleFontUrl: string; rationale: string }; accentColor: string }) {
   const family = `'${font.fontFamily}', sans-serif`;
   const num = String(index).padStart(2, "0");
-  const weights = ["Light", "Regular", "Medium", "Bold", "Black"];
-  const defaultWeightIdx = font.role === "heading" ? 3 : 1;
+  const weights: Array<{ label: string; value: number }> = [
+    { label: "Light", value: 300 },
+    { label: "Regular", value: 400 },
+    { label: "Medium", value: 500 },
+    { label: "Bold", value: 700 },
+    { label: "Black", value: 900 },
+  ];
+  const defaultIdx = font.role === "heading" ? 3 : 1;
+  const [selectedIdx, setSelectedIdx] = useState(defaultIdx);
+  const currentWeight = weights[selectedIdx].value;
 
   return (
     <div className="p-6 md:p-10 grid md:grid-cols-[auto_1fr_1fr] gap-6 items-center">
       <div><span className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: accentColor }}>{num}</span></div>
       <div>
-        <div className="leading-none" style={{ fontFamily: family, fontSize: "clamp(42px, 6vw, 72px)", fontWeight: font.role === "heading" ? 700 : 400 }}>
+        <div className="leading-none transition-all" style={{ fontFamily: family, fontSize: "clamp(42px, 6vw, 72px)", fontWeight: currentWeight }}>
           {font.fontFamily}
           {font.role === "body" && <span className="text-slate-400 ml-2 font-normal" style={{ fontSize: "0.45em" }}>Family</span>}
         </div>
@@ -824,22 +875,35 @@ function TypographyRow({ index, font, accentColor, showWeights }: { index: numbe
         <a href={font.googleFontUrl} target="_blank" rel="noreferrer" className="text-xs hover:underline mt-1 inline-block" style={{ color: accentColor }}>Google Fonts →</a>
       </div>
       <div>
-        <div className="text-sm md:text-base leading-relaxed text-slate-800" style={{ fontFamily: family }}>
+        <div className="text-sm md:text-base leading-relaxed text-slate-800 transition-all" style={{ fontFamily: family, fontWeight: currentWeight }}>
           abcdefghijklmnopqrstuvwxyz<br />ABCDEFGHIJKLMNOPQRSTUVWXYZ<br />0123456789!@#$%&?
         </div>
-        {showWeights && (
-          <div className="mt-5">
-            <div className="relative flex justify-between items-center">
-              <div className="absolute left-3 right-3 top-1/2 h-px bg-slate-200" />
-              {weights.map((w, i) => (
-                <div key={w} className="relative flex flex-col items-center gap-1">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: i === defaultWeightIdx ? accentColor : "#cbd5e1" }} />
-                  <span className={`text-[10px] md:text-xs ${i === defaultWeightIdx ? "font-bold text-slate-900" : "text-slate-500"}`}>{w}</span>
-                </div>
-              ))}
-            </div>
+        <div className="mt-5">
+          <div className="relative flex justify-between items-center">
+            <div className="absolute left-3 right-3 top-1/2 h-px bg-slate-200" />
+            {weights.map((w, i) => (
+              <button
+                key={w.label}
+                type="button"
+                onClick={() => setSelectedIdx(i)}
+                aria-pressed={i === selectedIdx}
+                className="relative flex flex-col items-center gap-1 cursor-pointer group focus:outline-none"
+              >
+                <div
+                  className="w-3 h-3 rounded-full transition-all group-hover:scale-125"
+                  style={{ backgroundColor: i === selectedIdx ? accentColor : "#cbd5e1" }}
+                />
+                <span
+                  className={`text-[10px] md:text-xs transition-colors ${
+                    i === selectedIdx ? "font-bold text-slate-900" : "text-slate-500 group-hover:text-slate-700"
+                  }`}
+                >
+                  {w.label}
+                </span>
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -152,37 +152,95 @@ function setFillRgb(doc: jsPDF, rgb: { r: number; g: number; b: number }) {
   doc.setFillColor(rgb.r, rgb.g, rgb.b);
 }
 
+function svgAspectRatio(svg: string): number {
+  // viewBox="x y w h" — primary source
+  const vb = svg.match(/viewBox\s*=\s*["']([\d.\s-]+)["']/i);
+  if (vb) {
+    const p = vb[1].trim().split(/\s+/).map(Number);
+    if (p.length === 4 && p[2] > 0 && p[3] > 0) return p[2] / p[3];
+  }
+  // Fallback: width/height attrs on <svg>
+  const wAttr = svg.match(/<svg[^>]*\swidth\s*=\s*["']?([\d.]+)/i);
+  const hAttr = svg.match(/<svg[^>]*\sheight\s*=\s*["']?([\d.]+)/i);
+  if (wAttr && hAttr) {
+    const w = parseFloat(wAttr[1]);
+    const h = parseFloat(hAttr[1]);
+    if (w > 0 && h > 0) return w / h;
+  }
+  return 1;
+}
+
+// Editor uses a 16:9 container with photo object-cover. PDF must replicate
+// the SAME canvas geometry so overlay percentages align exactly.
+const CANVAS_ASPECT = 16 / 9;
+
 async function composeMockup(
   photoUrl: string,
   overlay: MockupOverlayState,
   logoSvg: string
 ): Promise<string> {
   const photoDataUrl = await loadImageDataUrl(photoUrl);
-  const logoPngUrl = await svgToPngDataUrl(logoSvg, 1000, 1000);
+  // Rasterize SVG at correct aspect ratio (preserves detail, no squish)
+  const aspect = svgAspectRatio(logoSvg);
+  const RASTER = 1200;
+  const rasterW = aspect >= 1 ? RASTER : Math.round(RASTER * aspect);
+  const rasterH = aspect >= 1 ? Math.round(RASTER / aspect) : RASTER;
+  const logoPngUrl = await svgToPngDataUrl(logoSvg, rasterW, rasterH);
   const [photo, logo] = await Promise.all([
     loadImage(photoDataUrl),
     loadImage(logoPngUrl),
   ]);
+
+  // Build a 16:9 canvas (matches editor's aspect-ratio: 16/9 container).
+  const photoAspect = photo.width / photo.height;
+  const canvasW =
+    photoAspect >= CANVAS_ASPECT ? photo.width : photo.height * CANVAS_ASPECT;
+  const canvasH = canvasW / CANVAS_ASPECT;
+
   const canvas = document.createElement("canvas");
-  canvas.width = photo.width;
-  canvas.height = photo.height;
+  canvas.width = Math.round(canvasW);
+  canvas.height = Math.round(canvasH);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas 2d unavailable");
-  ctx.drawImage(photo, 0, 0);
 
-  const x = (overlay.x / 100) * photo.width;
-  const y = (overlay.y / 100) * photo.height;
-  const w = (overlay.w / 100) * photo.width;
-  const h = (overlay.h / 100) * photo.height;
+  // Object-cover: scale photo to fill canvas, crop overflow.
+  const coverScale = Math.max(canvasW / photo.width, canvasH / photo.height);
+  const scaledW = photo.width * coverScale;
+  const scaledH = photo.height * coverScale;
+  ctx.drawImage(
+    photo,
+    (canvasW - scaledW) / 2,
+    (canvasH - scaledH) / 2,
+    scaledW,
+    scaledH
+  );
+
+  // Overlay percentages relative to 16:9 canvas
+  const x = (overlay.x / 100) * canvasW;
+  const y = (overlay.y / 100) * canvasH;
+  const w = (overlay.w / 100) * canvasW;
+  const h = (overlay.h / 100) * canvasH;
   const rot = ((overlay.rotate ?? 0) * Math.PI) / 180;
   const skewY = ((overlay.rotateX ?? 0) * Math.PI) / 180 / 4;
   const skewX = ((overlay.rotateY ?? 0) * Math.PI) / 180 / 4;
+
+  // Mimic editor's "object-fit: contain" — fit logo into w×h box, preserve aspect
+  const boxAspect = w / h;
+  let drawW: number;
+  let drawH: number;
+  if (aspect > boxAspect) {
+    drawW = w;
+    drawH = w / aspect;
+  } else {
+    drawH = h;
+    drawW = h * aspect;
+  }
 
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
   ctx.rotate(rot);
   ctx.transform(1, Math.tan(skewY), Math.tan(skewX), 1, 0, 0);
-  ctx.drawImage(logo, -w / 2, -h / 2, w, h);
+  ctx.drawImage(logo, -drawW / 2, -drawH / 2, drawW, drawH);
   ctx.restore();
 
   return canvas.toDataURL("image/jpeg", 0.88);
