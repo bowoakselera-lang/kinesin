@@ -345,6 +345,34 @@ function HeroWord({
   );
 }
 
+// Mask-reveal line: text slides up from below as it enters viewport
+function RevealLine({
+  children,
+  delay = 0,
+  color,
+  weight,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  color?: string;
+  weight?: number;
+}) {
+  return (
+    <span className="block overflow-hidden">
+      <motion.span
+        className="block"
+        initial={{ y: "110%" }}
+        whileInView={{ y: "0%" }}
+        viewport={{ once: true, amount: 0.5 }}
+        transition={{ duration: 1.1, delay, ease: [0.16, 1, 0.3, 1] }}
+        style={{ color, fontWeight: weight }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+}
+
 // ─── MARQUEE ────────────────────────────────────────────────────────────
 function Marquee() {
   const items = [
@@ -497,10 +525,9 @@ function HowItWorks() {
     target: ref,
     offset: ["start end", "end start"],
   });
-  // Skater glides from off-screen left to off-screen right while user scrolls
-  const charX = useTransform(scrollYProgress, [0, 1], ["-25vw", "115vw"]);
-  // Slight rotation as it moves
-  const charRotate = useTransform(scrollYProgress, [0, 1], [-4, 4]);
+  // Bird traverses right → left at section boundary (early scroll phase)
+  const birdX = useTransform(scrollYProgress, [0.05, 0.3], ["110vw", "-18vw"]);
+  const birdRotate = useTransform(scrollYProgress, [0.05, 0.3], [4, -4]);
 
   const steps = [
     {
@@ -523,45 +550,66 @@ function HowItWorks() {
   return (
     <section
       ref={ref}
-      className="relative bg-white py-32 md:py-48 overflow-hidden"
+      className="relative bg-white py-32 md:py-48 overflow-hidden -mt-16 rounded-t-[48px] md:rounded-t-[72px] shadow-[0_-30px_60px_-15px_rgba(0,0,0,0.5)] z-10"
     >
-      {/* Skateboarder gliding across the section as user scrolls */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <motion.div
-          className="sticky top-1/2 left-0 w-fit"
-          style={{ x: charX, y: "-50%", rotate: charRotate }}
-        >
-          <motion.img
-            src="/object polosn.png"
-            alt=""
-            className="w-28 md:w-36 lg:w-44 select-none"
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            draggable={false}
-          />
-        </motion.div>
-      </div>
+      {/* Video background */}
+      <video
+        src="/bg%20animasi%203.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
+      />
+      {/* Soft white veil for text legibility */}
+      <div className="absolute inset-0 bg-white/55 pointer-events-none z-0" />
+
+      {/* Bird flies right → left at the section boundary (top rounded edge) */}
+      <motion.div
+        className="absolute top-2 md:top-4 left-0 pointer-events-none z-20"
+        style={{ x: birdX, rotate: birdRotate }}
+      >
+        <motion.img
+          src="/burung.png"
+          alt=""
+          className="w-14 md:w-20 lg:w-24 select-none drop-shadow-xl"
+          animate={{
+            scaleY: [1, 0.55, 1, 0.72, 1],
+            scaleX: [-1, -1.04, -1, -1.02, -1],
+            y: [0, -6, 0],
+          }}
+          transition={{
+            duration: 0.35,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          draggable={false}
+          style={{ transformOrigin: "center" }}
+        />
+      </motion.div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6">
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.5 }}
-          className="mb-20 text-center"
-        >
-          <p className="text-xs font-bold text-indigo-600 tracking-[0.3em] uppercase mb-4">
+        <div className="mb-12 text-center">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.7, ease: EASE }}
+            className="text-xs font-bold text-indigo-600 tracking-[0.3em] uppercase mb-4"
+          >
             03 · How it works
-          </p>
+          </motion.p>
           <h2
             className="text-4xl md:text-6xl lg:text-7xl uppercase tracking-tight leading-[1.05]"
             style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 700 }}
           >
-            Tiga langkah.
-            <br />
-            <span style={{ color: "#f767bc", fontWeight: 200 }}>Satu guideline.</span>
+            <RevealLine delay={0.15}>Tiga langkah.</RevealLine>
+            <RevealLine delay={0.32} color="#f767bc" weight={200}>
+              Satu guideline.
+            </RevealLine>
           </h2>
-        </motion.div>
+        </div>
 
         <div className="space-y-32">
           {steps.map((s, i) => (
@@ -716,8 +764,20 @@ function PaletteShowcase() {
     { hex: "#F1F5F9", name: "Light" },
   ];
 
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  // Skater glides above the bars as user scrolls through this section
+  const charX = useTransform(scrollYProgress, [0, 1], ["-25vw", "115vw"]);
+  const charRotate = useTransform(scrollYProgress, [0, 1], [-4, 4]);
+
   return (
-    <section className="bg-slate-950 py-32 md:py-40 overflow-hidden">
+    <section
+      ref={ref}
+      className="bg-slate-950 py-32 md:py-40 overflow-hidden"
+    >
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           variants={fadeUp}
@@ -741,51 +801,86 @@ function PaletteShowcase() {
           </h2>
         </motion.div>
 
+        {/* Skater glides above the palette bars as user scrolls */}
+        <div className="relative h-32 md:h-44 lg:h-52 overflow-hidden mb-8">
+          <motion.div
+            className="absolute top-1/2 left-0 w-fit"
+            style={{ x: charX, y: "-50%", rotate: charRotate }}
+          >
+            <motion.img
+              src="/object polosn.png"
+              alt=""
+              className="w-28 md:w-36 lg:w-44 select-none"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              draggable={false}
+            />
+          </motion.div>
+        </div>
+
         <motion.div
-          initial="hidden"
-          whileInView="show"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.08 } },
-          }}
+          transition={{ duration: 0.6, ease: EASE }}
           className="flex rounded-2xl overflow-hidden h-32 md:h-44 shadow-2xl"
         >
           {colors.map((c) => (
-            <motion.div
-              key={c.hex}
-              variants={{
-                hidden: { flex: "0 0 0%" },
-                show: {
-                  flex: "1 1 0%",
-                  transition: { duration: 0.9, ease: EASE },
-                },
-              }}
-              className="flex items-end p-4 md:p-6 overflow-hidden"
-              style={{ backgroundColor: c.hex }}
-            >
-              <div className="text-[10px] md:text-xs font-mono whitespace-nowrap">
-                <div
-                  className="font-bold mb-1"
-                  style={{
-                    color: c.hex === "#F1F5F9" ? "#0f172a" : "#fff",
-                  }}
-                >
-                  {c.name}
-                </div>
-                <div
-                  style={{
-                    color: c.hex === "#F1F5F9" ? "#475569" : "rgba(255,255,255,0.7)",
-                  }}
-                >
-                  {c.hex}
-                </div>
-              </div>
-            </motion.div>
+            <PaletteBar key={c.hex} hex={c.hex} name={c.name} />
           ))}
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function PaletteBar({ hex, name }: { hex: string; name: string }) {
+  const isLight = hex === "#F1F5F9";
+
+  return (
+    <motion.div
+      className="relative flex-1 overflow-hidden bg-slate-800/60 cursor-pointer"
+    >
+      {/* Color fills the bar by default; water sloshes when hovered */}
+      <motion.div
+        initial={{ height: "100%" }}
+        animate={{ height: "100%" }}
+        whileHover={{
+          height: ["100%", "65%", "100%"],
+          transition: { duration: 1.6, ease: [0.45, 0, 0.55, 1], repeat: Infinity },
+        }}
+        className="absolute bottom-0 left-0 right-0"
+        style={{ backgroundColor: hex }}
+      >
+        {/* Water surface meniscus (subtle white highlight at the top) */}
+        <div
+          className="absolute top-0 left-0 right-0 h-2 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.1) 60%, transparent)",
+          }}
+        />
+      </motion.div>
+
+      {/* Label — always over the filled portion */}
+      <div className="relative z-10 flex items-end h-full p-4 md:p-6 pointer-events-none">
+        <div className="text-[10px] md:text-xs font-mono whitespace-nowrap">
+          <div
+            className="font-bold mb-1"
+            style={{ color: isLight ? "#0f172a" : "#ffffff" }}
+          >
+            {name}
+          </div>
+          <div
+            style={{
+              color: isLight ? "#475569" : "rgba(255,255,255,0.75)",
+            }}
+          >
+            {hex}
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
