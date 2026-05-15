@@ -287,7 +287,7 @@ function HeroLine({
   weight,
   color,
 }: {
-  children: React.ReactNode;
+  children: string;
   delay: number;
   weight: number;
   color: string;
@@ -306,7 +306,7 @@ function HeroLine({
         animate={{ y: "0%" }}
         transition={{ duration: 1, delay, ease: EASE }}
       >
-        {children}
+        <HoverLetters text={children} />
       </motion.span>
     </motion.span>
   );
@@ -319,7 +319,7 @@ function HeroWord({
   color,
   inline,
 }: {
-  children: React.ReactNode;
+  children: string;
   delay: number;
   weight: number;
   color: string;
@@ -339,8 +339,79 @@ function HeroWord({
         animate={{ y: "0%" }}
         transition={{ duration: 1, delay, ease: EASE }}
       >
-        {children}
+        <HoverLetters text={children} />
       </motion.span>
+    </motion.span>
+  );
+}
+
+// Splits text into per-letter spans; each lifts + rotates on hover
+function HoverLetters({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("").map((char, i) => (
+        <motion.span
+          key={i}
+          className="inline-block cursor-default"
+          whileHover={{
+            scale: 1.25,
+            y: -10,
+            rotate: i % 2 === 0 ? -6 : 6,
+          }}
+          transition={{ type: "spring", stiffness: 420, damping: 12 }}
+          style={{ transformOrigin: "center bottom" }}
+        >
+          {char === " " ? " " : char}
+        </motion.span>
+      ))}
+    </>
+  );
+}
+
+// Stomp word — each word punches in with spring bounce.
+// On hover, individual letters lift + scale + rotate independently.
+function StompWord({
+  children,
+  delay = 0,
+  color,
+  weight,
+}: {
+  children: string;
+  delay?: number;
+  color?: string;
+  weight?: number;
+}) {
+  const letters = children.split("");
+  return (
+    <motion.span
+      className="inline-block"
+      initial={{ scale: 0.35, opacity: 0, y: -24, rotate: -3 }}
+      whileInView={{ scale: 1, opacity: 1, y: 0, rotate: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{
+        type: "spring",
+        stiffness: 380,
+        damping: 14,
+        mass: 0.7,
+        delay,
+      }}
+      style={{ color, fontWeight: weight, transformOrigin: "center bottom" }}
+    >
+      {letters.map((char, i) => (
+        <motion.span
+          key={i}
+          className="inline-block cursor-default"
+          whileHover={{
+            scale: 1.35,
+            y: -12,
+            rotate: i % 2 === 0 ? -8 : 8,
+          }}
+          transition={{ type: "spring", stiffness: 420, damping: 12 }}
+          style={{ transformOrigin: "center bottom" }}
+        >
+          {char}
+        </motion.span>
+      ))}
     </motion.span>
   );
 }
@@ -910,18 +981,20 @@ function FinalCTA() {
       />
 
       <div className="relative max-w-3xl mx-auto px-6">
-        <motion.h2
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.5 }}
+        <h2
           className="text-4xl md:text-6xl lg:text-7xl uppercase tracking-tight leading-[1.05] mb-8"
           style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 700 }}
         >
-          Siap bangun
+          <StompWord delay={0.05}>Siap</StompWord>{" "}
+          <StompWord delay={0.2}>bangun</StompWord>
           <br />
-          <span style={{ color: "#f767bc", fontWeight: 200 }}>identitas brand-mu?</span>
-        </motion.h2>
+          <StompWord delay={0.4} color="#f767bc" weight={200}>
+            identitas
+          </StompWord>{" "}
+          <StompWord delay={0.55} color="#f767bc" weight={200}>
+            brand-mu?
+          </StompWord>
+        </h2>
         <motion.p
           variants={fadeUp}
           initial="hidden"
